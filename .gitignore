@@ -168,3 +168,4 @@ cython_debug/
 *.tar.gz
 *.txt
 *temp*
+*.json

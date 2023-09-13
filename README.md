@@ -24,16 +24,17 @@ We construct a catalog of GZ3D galaxies using the MANGA metadata in the GZ3D fit
 
 We cross-match that catalog (plus the SAMI catalog, see below) with the GZ DESI base catalog: `desi_manga_crossmatch.ipynb`.
 
-We add the GZ DESI fits file locs to the catalog, and grab them from Manchester with rsync: `grab_desi_fits.ipynb`. The catalog is now ready: `data/gz3d_and_gz_desi_master_catalog.csv`
+We add the GZ DESI FITS file locs to the catalog, and grab them from Manchester with rsync: `grab_desi_fits.ipynb`. The catalog is now ready: `data/gz3d_and_gz_desi_master_catalog.csv`
 
 We already have DESI images resized at 424x424 and cropped to a GZ DESI FoV.
+
+For each GZ3D FITS, we separately save the raw bar/spiral volunteer path annotations as JSON for fast loading. We don't need the rest of the GZ3D data. `extract_gz3d_segmaps.py`
 
 For training, we will use only galaxies which have spiral and/or bar segmaps.
 
 ## Data Loaders
 
-For each galaxy, we dynamically construct GZ3D segmaps from the raw volunteer classifications. We use WCS to place these in an image with pixel positions that match the corresponding GZ DESI image. We can choose which volunteer classifications to use.
-
+For each galaxy, we dynamically construct GZ3D segmaps from the raw volunteer classifications. We use WCS to place these in an image with pixel positions that match the corresponding GZ DESI image. We can choose which volunteer classifications to use. WIP, sketched out in notebook.
 
 ---
 
