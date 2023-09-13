@@ -21,5 +21,6 @@ if __name__ == '__main__':
         data.append(dict(zip(columns, manga_metadata_for_galaxy[0])))
 
     df = pd.DataFrame(data=data)
+    df['local_gz3d_fits_loc'] = locs
     print(df.sample(5))
-    df.to_csv('data/gz3d/reconstructed_gz3d_catalog.csv', index=False)
+    df.to_csv('data/gz3d/reconstructed_gz3d_catalog_new.csv', index=False)
