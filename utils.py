@@ -2,6 +2,7 @@
 import numpy as np
 from PIL import Image
 
+
 def fits_to_png(im):
     # Set parameters for RGB image creation
     _scales = dict(
