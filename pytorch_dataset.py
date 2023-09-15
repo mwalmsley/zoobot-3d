@@ -69,10 +69,10 @@ class SegmentationGalaxyDataset(galaxy_dataset.GalaxyDataset):
 
 def construct_segmap_image(galaxy, marks_by_users):
 
-    manga_segmap_starting_dim = 525
+    manga_segmap_dim = 525
 
     # TODO could change the logic for iterating over users here
-    mask = np.zeros((manga_segmap_starting_dim, manga_segmap_starting_dim))
+    mask = np.zeros((manga_segmap_dim, manga_segmap_dim))
     for user_components in marks_by_users:
         mask += segmap_utils.draw_components(user_components, remove_self_intersecting=False)
 
@@ -80,24 +80,25 @@ def construct_segmap_image(galaxy, marks_by_users):
     mask = mask[::-1]
 
     # convert to RGB image
-    assert mask.max() > 0
-    assert mask.min() == 0
-    mask_im = Image.fromarray((255*mask/mask.max()).astype(np.uint8))
+    if mask.max() == 0:  # empty mask :(
+        mask_im = Image.fromarray(np.zeros((manga_segmap_dim, manga_segmap_dim)))
+    else:
+        mask_im = Image.fromarray((255*mask/mask.max()).astype(np.uint8))
 
     # align to DESI FoV
 
     # mask will be centered at same location, but different FoV (52'') and pixscale (0.099''/pixel)
     desi_field_of_view = galaxy['est_dr5_pixscale'] * 424
     segmap_pixels_needed = desi_field_of_view / 0.099  # height/width required for desi FoV
-    extra_pixels_needed = (segmap_pixels_needed - manga_segmap_starting_dim) // 2
+    extra_pixels_needed = (segmap_pixels_needed - manga_segmap_dim) // 2
 
     # negative crop on all sides of manga image, to extend as needed
     # 0-padded by default
     
     left = - extra_pixels_needed
     upper = - extra_pixels_needed
-    right = manga_segmap_starting_dim + extra_pixels_needed
-    lower = manga_segmap_starting_dim + extra_pixels_needed
+    right = manga_segmap_dim + extra_pixels_needed
+    lower = manga_segmap_dim + extra_pixels_needed
     mask_im = mask_im.crop((left, upper, right, lower))
 
     # resize to DESI jpg image size
