@@ -12,20 +12,22 @@ if __name__ == '__main__':
     if os.path.isdir('/share/nas2'):
         galahad = True
         repo_dir = '/share/nas2/walml/repos/zoobot-3d'
-        base_dir = '/share/nas2/walml/galaxy_zoo/segmentation/data/desi'
+        data_dir = '/share/nas2/walml/galaxy_zoo/segmentation/data'
+        
         sys.path.append('/share/nas2/walml/repos/download_DECaLS_images')
     else:
         galahad = False
         repo_dir = '/Users/user/repos/zoobot-3d'
-        base_dir = os.path.join(repo_dir, 'data/desi')
+        data_dir = os.path.join(repo_dir, 'data')
         sys.path.append('/Users/user/repos/download_DECaLS_images')
 
     import downloader
     
+    base_image_dir = os.path.join(data_dir, 'desi')
+
     df = pd.read_csv(
         os.path.join(
-            repo_dir,
-            'data/gz3d_and_gz_desi_matches.csv')
+            data_dir, 'gz3d_and_gz_desi_matches.csv')
     )
 
     if not galahad:
@@ -37,16 +39,16 @@ if __name__ == '__main__':
         galaxy['dec'] = galaxy['dec_manga']
         rgb_format = 'jpg'
 
-        fits_dir = os.path.join(base_dir, 'fits')
-        rgb_dir = os.path.join(base_dir, rgb_format)
+        fits_dir = os.path.join(base_image_dir, 'fits')
+        rgb_dir = os.path.join(base_image_dir, rgb_format)
 
-        for temp_dir in [base_dir, fits_dir, rgb_dir]:
+        for temp_dir in [base_image_dir, fits_dir, rgb_dir]:
             if not os.path.exists(temp_dir):
                 os.makedirs(temp_dir)
 
         downloader.download_images(
             galaxy,
-            base_dir,
+            base_image_dir,
             rgb_format='jpg', # originally png
             data_release='8',
             force_redownload=False,
