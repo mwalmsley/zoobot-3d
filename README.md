@@ -6,8 +6,8 @@ Segmentation playground for GZ3D and more.
 
 The general plan is:
 
-* Use WCS to line up the GZ3D masks with the DESI-LS cutout service fits for MANGA (in progress)
-* Subclass the galaxy-datasets dataloader to add support for segmentation masks
+* Line up the GZ3D masks with the DESI-LS cutout service fits for MANGA (done)
+* Subclass the galaxy-datasets dataloader to add support for segmentation masks (done)
 * Model surgery: separate out the encoder and decoder halves and define as separate forward pass steps. Add classification head (zoobot style, Dirichlet loss) to optionally forward pass instead of the decoder half. (in progress)
 * Check the UNet encoder + decoder works for segmentation
 * Check the UNet encoder + classifier head works for classifications
@@ -38,10 +38,18 @@ For training, we will use only galaxies which have spiral and/or bar segmaps.
 For each galaxy, we dynamically construct GZ3D segmaps from the raw volunteer classifications. 
 We can choose which volunteer classifications to use - I suspect all, without the GZ3D default cleaning.
 
+Construct the segmaps and align them to the DESI images, then optionally apply augmentations: `pytorch_dataset.py`
 
+Wrap them together in a LightningDataModule: `pytorch_datamodule.py`
 
-<!-- We already have DESI images resized at 424x424 and cropped to a GZ 
-We use WCS to place these in an image with pixel positions that match the corresponding GZ DESI image.  -->
+TODO Set up model. The model should a dict from the dataloaders, like
+
+    {
+        'image': (augmented DESI RGB image, 0-1 floats),
+        'spiral_mask': (augmented mask from GZ3D),
+        'bar_mask': (similarly),
+        'label_cols': classification votes from DESI as with Zoobot e.g. [[1, 4, 2, ...], ...]
+    }
 
 ---
 
