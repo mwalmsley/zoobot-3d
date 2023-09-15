@@ -1,24 +1,40 @@
 import sys
-sys.path.append('/Users/user/repos/download_DECaLS_images')
 import os
 
 from tqdm import tqdm
 import pandas as pd
 
-import downloader
+
 
 
 if __name__ == '__main__':
 
+    if os.path.isdir('/share/nas2'):
+        galahad = True
+        repo_dir = '/share/nas2/walml/repos/zoobot-3d'
+        base_dir = '/share/nas2/walml/galaxy_zoo/segmentation/data/desi'
+        sys.path.append('/share/nas2/walml/repos/download_DECaLS_images')
+    else:
+        galahad = False
+        repo_dir = '/Users/user/repos/zoobot-3d'
+        base_dir = os.path.join(repo_dir, 'data/desi')
+        sys.path.append('/Users/user/repos/download_DECaLS_images')
+
+    import downloader
+    
     df = pd.read_csv(
-        '/Users/user/repos/zoobot-3d/data/gz3d_and_gz_desi_matches.csv'
-    )[:100]
-    # galaxy = df.iloc[32]
+        os.path.join(
+            repo_dir,
+            'data/gz3d_and_gz_desi_matches.csv')
+    )
+
+    if not galahad:
+        df = df[:100]
+    
     for _, galaxy in tqdm(list(df.iterrows())):
         # center on MANGA source, not DESI source
         galaxy['ra'] = galaxy['ra_manga']
         galaxy['dec'] = galaxy['dec_manga']
-        base_dir = 'data/desi'
         rgb_format = 'jpg'
 
         fits_dir = os.path.join(base_dir, 'fits')

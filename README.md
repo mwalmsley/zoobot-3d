@@ -55,3 +55,9 @@ For much later, we have downloaded the SAMI candidate target list.
 * [Explaining the IFU data products](https://docs.datacentral.org.au/sami/data-release-3/core-data-products/)
 * [Index of access services](https://datacentral.org.au/services/)
 * Target selection is from GAMA. Here’s the [docs](https://docs.datacentral.org.au/sami/data-release-3/input-and-photometric-catalogues/).
+
+## Useful commands
+
+    rsync --files-from data/galahad_jpg_to_copy.txt -e 'ssh -A -J walml@external.jb.man.ac.uk' walml@galahad.ast.man.ac.uk:/share/nas2/walml/galaxy_zoo/decals/dr8/jpg data/gz_desi/jpg
+
+    rsync -az -e 'ssh -A -J walml@external.jb.man.ac.uk' data walml@galahad.ast.man.ac.uk:/share/nas2/walml/galaxy_zoo/segmentation
