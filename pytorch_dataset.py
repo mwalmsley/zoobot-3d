@@ -6,9 +6,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
+import albumentations as A
+from albumentations.pytorch import ToTensorV2
 
 import segmap_utils
-import wcs_utils
+
 
 from galaxy_datasets.pytorch import galaxy_dataset
 
@@ -28,7 +30,7 @@ class SegmentationGalaxyDataset(galaxy_dataset.GalaxyDataset):
         # load the image into memory
         image_loc = galaxy['local_desi_jpg_loc']
         try:
-            image = galaxy_dataset.load_img_file(image_loc)
+            image = np.array(galaxy_dataset.load_img_file(image_loc))
             # HWC PIL image, 0-255 uint8
         except Exception as e:
             logging.critical('Cannot load {}'.format(image_loc))
@@ -43,9 +45,12 @@ class SegmentationGalaxyDataset(galaxy_dataset.GalaxyDataset):
                 segmap_dict[segmap_name] = segmap_image
         
         if self.transform:
-            image = self.transform(image)
-            # apply to each segmap within the segmap_dict
-            segmap_dict = dict([(name, self.transform(segmap)) for name, segmap in segmap_dict.copy().items()])
+            transformed = self.transform(image=image, **segmap_dict)
+            image = transformed['image']
+            # everything else is the transformed segmap dict
+            del transformed['image']
+            segmap_dict = transformed
+            # segmap_dict = dict([(k, v) for k, v in transformed.items() if k != 'image'])
 
         if self.label_cols is None:
             return image, segmap_dict
@@ -98,7 +103,7 @@ def construct_segmap_image(galaxy, marks_by_users):
     # resize to DESI jpg image size
     mask_im = mask_im.resize((424, 424))
 
-    return mask_im
+    return np.array(mask_im)
 
 
 
@@ -127,19 +132,56 @@ if __name__ == '__main__':
         # # plt.show()
         # # plt.savefig('temp_latest.png', bbox_inches='tight', pad_inches=0., facecolor='purple')
 
-        # full test of dataloader
-        dataset = SegmentationGalaxyDataset(df)
+        # # test of dataloader (without transforms)
+        # dataset = SegmentationGalaxyDataset(df)
+        # image, segmap_dict = dataset[32]
+        # fig, (ax0, ax1, ax2) = plt.subplots(ncols=3, figsize=(10, 3))
+        # ax0.imshow(segmap_dict['spiral'])
+        # ax1.imshow(segmap_dict['bar'])
+        # ax2.imshow(image)
+        # plt.show()
+
+        # # test of dataloader with manual albumentations transform
+        # dataset = SegmentationGalaxyDataset(df)
+        # image, segmap_dict = dataset[32]
+
+        # transform = A.Compose(
+        #     [
+        #         A.RandomCrop(300, 300)
+        #     ],
+        #     # can't do dynamically, need to know how many inputs to expect before transform
+        #     additional_targets={'spiral_mask': 'image', 'bar_mask': 'image'}
+        # )
+        # transformed = transform(image=image, spiral_mask=segmap_dict['spiral'], bar_mask=segmap_dict['bar'])
+
+        # fig, (ax0, ax1, ax2) = plt.subplots(ncols=3, figsize=(10, 3))
+        # ax0.imshow(transformed['spiral_mask'])
+        # ax1.imshow(transformed['bar_mask'])
+        # ax2.imshow(transformed['image'])  # default target keyed as image
+        # plt.show()
+
+        # test of dataloader with albumentations transform
+        transform = A.Compose(
+            [
+                A.RandomCrop(300, 300),
+                # ToTensorV2()  # would use this if really PyTorch, sets channels first
+            ],
+            # can't do dynamically, need to know how many inputs to expect before transform
+            additional_targets={'spiral_mask': 'image', 'bar_mask': 'image'}
+        )
+        dataset = SegmentationGalaxyDataset(df, transform=transform)
         image, segmap_dict = dataset[32]
+
         fig, (ax0, ax1, ax2) = plt.subplots(ncols=3, figsize=(10, 3))
-        ax0.imshow(segmap_dict['spiral'])
-        ax1.imshow(segmap_dict['bar'])
-        ax2.imshow(image)
+        ax0.imshow(segmap_dict['spiral_mask'])
+        ax1.imshow(segmap_dict['bar_mask'])
+        ax2.imshow(image)  # default target keyed as image
         plt.show()
 
 
-
-
 """
+
+import wcs_utils
 
 # work out the WCS of the segmap
 segmap_wcs = wcs_utils.get_wcs_assuming_image_size(

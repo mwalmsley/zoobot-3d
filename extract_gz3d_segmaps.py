@@ -8,11 +8,11 @@ from astropy.io import fits
 def save_segmaps(df: pd.DataFrame):
 
     for _, galaxy in tqdm(list(df.iterrows())):
-        spiral_marks = extract_marks_for_galaxy(galaxy, 'spiral')
-        bar_marks = extract_marks_for_galaxy(galaxy, 'bar')
+        spiral_marks = extract_marks_for_galaxy(galaxy, 'spiral_mask')
+        bar_marks = extract_marks_for_galaxy(galaxy, 'bar_mask')
         all_marks = {
-            'spiral': spiral_marks,
-            'bar': bar_marks
+            'spiral_mask': spiral_marks,
+            'bar_mask': bar_marks
         }
 
         save_loc = galaxy['local_gz3d_fits_loc'].replace('/fits_gz/', '/segmaps/').replace('.fits.gz', '.json')
@@ -23,9 +23,9 @@ def save_segmaps(df: pd.DataFrame):
 
 def extract_marks_for_galaxy(galaxy, which_marks):
 
-    if which_marks == 'spiral':
+    if which_marks == 'spiral_mask':
         fits_index = 9
-    elif which_marks == 'bar':
+    elif which_marks == 'bar_mask':
         fits_index = 10
     else:
         raise ValueError(which_marks)
@@ -42,8 +42,6 @@ def extract_marks_for_galaxy(galaxy, which_marks):
     return all_marks_by_users
 
 
-
 if __name__ == '__main__':
 
     save_segmaps(pd.read_csv('/Users/user/repos/zoobot-3d/data/gz3d_and_gz_desi_master_catalog.csv'))
-
