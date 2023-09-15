@@ -25,6 +25,8 @@ class SegmentationGalaxyDataset(galaxy_dataset.GalaxyDataset):
 
     def __getitem__(self, index: int):
 
+        outputs = {}
+
         galaxy = self.catalog.iloc[index]
 
         # load the image into memory
@@ -53,7 +55,8 @@ class SegmentationGalaxyDataset(galaxy_dataset.GalaxyDataset):
             # segmap_dict = dict([(k, v) for k, v in transformed.items() if k != 'image'])
 
         if self.label_cols is None:
-            return image, segmap_dict
+            outputs['image'] = image
+            outputs.update(segmap_dict)  # e.g. spiral_mask, bar_mask (inplace)
         else:
             # load the labels. If no self.label_cols, will 
             label = galaxy_dataset.get_galaxy_label(galaxy, self.label_cols)    
@@ -62,8 +65,10 @@ class SegmentationGalaxyDataset(galaxy_dataset.GalaxyDataset):
             if self.target_transform:
                 label = self.target_transform(label)
             # no effect on mask labels
+            outputs['label_cols'] = label
 
-            return image, segmap_dict, label
+        print(outputs)
+        return outputs
 
 
 
@@ -171,12 +176,12 @@ if __name__ == '__main__':
             additional_targets={'spiral_mask': 'image', 'bar_mask': 'image'}
         )
         dataset = SegmentationGalaxyDataset(df, transform=transform)
-        image, segmap_dict = dataset[32]
+        outputs = dataset[32]
 
         fig, (ax0, ax1, ax2) = plt.subplots(ncols=3, figsize=(10, 3))
-        ax0.imshow(segmap_dict['spiral_mask'])
-        ax1.imshow(segmap_dict['bar_mask'])
-        ax2.imshow(image)  # default target keyed as image
+        ax0.imshow(outputs['spiral_mask'])
+        ax1.imshow(outputs['bar_mask'])
+        ax2.imshow(outputs['image'])  # default target keyed as image
         plt.show()
 
 

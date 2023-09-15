@@ -13,17 +13,19 @@ if __name__ == '__main__':
         galahad = True
         repo_dir = '/share/nas2/walml/repos/zoobot-3d'
         data_dir = '/share/nas2/walml/galaxy_zoo/segmentation/data'
+        base_image_dir = os.path.join(data_dir, 'desi')
         
         sys.path.append('/share/nas2/walml/repos/download_DECaLS_images')
     else:
         galahad = False
         repo_dir = '/Users/user/repos/zoobot-3d'
         data_dir = os.path.join(repo_dir, 'data')
+        # base_image_dir = os.path.join(data_dir, 'desi')
+        base_image_dir = '/Volumes/beta/galaxy_zoo/segmentation/data/desi'
         sys.path.append('/Users/user/repos/download_DECaLS_images')
 
     import downloader
     
-    base_image_dir = os.path.join(data_dir, 'desi')
 
     df = pd.read_csv(
         os.path.join(
@@ -56,7 +58,7 @@ if __name__ == '__main__':
             max_retries=5,
             min_pixelscale=0.1,
             rgb_size=424,
-            lazy_checking=False,
+            lazy_checking=True,
             print_url=False
         )
     
