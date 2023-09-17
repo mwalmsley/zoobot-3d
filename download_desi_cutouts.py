@@ -58,7 +58,7 @@ if __name__ == '__main__':
             max_retries=5,
             min_pixelscale=0.1,
             rgb_size=424,
-            lazy_checking=True,
+            lazy_checking=False,
             print_url=False
         )
     
