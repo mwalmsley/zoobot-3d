@@ -3,6 +3,7 @@
 
 import torch
 import torch.nn as nn
+from torch.nn import Functional as F
 
 import pytorch_lightning as pl
 from torchmetrics import Accuracy
@@ -151,13 +152,15 @@ class ZooBot3D(GenericLightningModule):
                                               self.drop_rates)
 
         ## build classifier
-        #self.encoder_dim = get_encoder_dim(self.encoder, self.input_size, self.channels)
-        #self.head = get_pytorch_dirichlet_head(self.encoder_dim,
-        #                                       output_dim,
-        #                                       test_time_dropout,
-        #                                       head_dropout)
-
-        #self.loss_func = get_dirichlet_loss_func(question_index_groups)
+        self.encoder_dim = get_encoder_dim(self.encoder, self.input_size, self.channels)
+        self.head = get_pytorch_dirichlet_head(self.encoder_dim,
+                                               output_dim,
+                                               test_time_dropout,
+                                               head_dropout)
+        # Losses - Set both separately then just add together? MSE for real seg maps, BXE for threshold
+        # Not really sure how Torch parses the loss functions yet, need to handle the multiple outputs
+        self.dirichlet_loss = get_dirichlet_loss_func(question_index_groups)
+        self.seg_loss = F.mse_loss
 
         # build decoder
         self.decoder = pytorch_decoder_module(self.in_out,
