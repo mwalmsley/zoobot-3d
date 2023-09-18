@@ -167,6 +167,26 @@ class ZooBot3D(GenericLightningModule):
         self.decoder = pytorch_decoder_module(self.in_out,
                                               n_classes)
 
+    def make_step(self, batch, batch_idx, step_name):
+        ### This is going to override the generic make step, needs to get predictions for both labels and seg maps
+        ### Possibly where we skip sep maps for images that don't need them?
+        return
+
+    def calculate_and_log_loss(self, predictions, labels, step_name):
+        """
+        loss logging, found it!
+        # self.loss_func returns shape of (galaxy, question), mean to ()
+        multiq_loss = self.loss_func(predictions, labels, sum_over_questions=False)
+        # if hasattr(self, 'schema'):
+        self.log_loss_per_question(multiq_loss, prefix=step_name)
+        # sum over questions and take a per-device mean
+        # for DDP strategy, batch size is constant (batches are not divided, data pool is divided)
+        # so this will be the global per-example mean
+        loss = torch.mean(torch.sum(multiq_loss, axis=1))
+        """
+        return loss
+
+
     def forward(self, x):
 
         x, h = self.encoder(x)
