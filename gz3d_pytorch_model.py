@@ -4,6 +4,76 @@
 import torch
 import torch.nn as nn
 
+import pytorch_lightning as pl
+from torchmetrics import Accuracy
+
+
+class GenericLightningModule(pl.LightningModule):
+    """
+    All Zoobot models use the lightningmodule API and so share this structure
+    super generic, just to outline the structure. nothing specific to dirichlet, gz, etc
+    only assumes an encoder and a head
+    """
+
+    def __init__(
+        self,
+        *args,  # to be saved as hparams
+        ):
+        super().__init__()
+        self.save_hyperparameters()  # saves all args by default
+        self.setup_metrics()
+
+
+    def setup_metrics(self):
+        # these are ignored unless output dim = 2
+        self.train_accuracy = Accuracy(task='binary')
+        self.val_accuracy = Accuracy(task='binary')
+        # self.log_on_step = False
+        # self.log_on_step is useful for debugging, but slower - best when log_every_n_steps is fairly large
+
+
+    def forward(self, x):
+        x = self.encoder(x)
+        return self.head(x)
+    
+    def make_step(self, batch, batch_idx, step_name):
+        x, labels = batch
+        predictions = self(x)  # by default, these are Dirichlet concentrations
+        loss = self.calculate_and_log_loss(predictions, labels, step_name)      
+        return {'loss': loss, 'predictions': predictions, 'labels': labels}
+
+    def calculate_and_log_loss(self, predictions, labels, step_name):
+        raise NotImplementedError('Must be subclassed')
+
+    def configure_optimizers(self):
+        raise NotImplementedError('Must be subclassed')
+
+    def training_step(self, batch, batch_idx):
+        return self.make_step(batch, batch_idx, step_name='train')
+
+    def on_training_batch_end(self, outputs, *args):
+        self.log_outputs(outputs, step_name='train')
+
+    def validation_step(self, batch, batch_idx):
+        return self.make_step(batch, batch_idx, step_name='validation')
+
+    def on_validation_batch_end(self, outputs, *args):
+        self.log_outputs(outputs, step_name='validation')
+
+    def test_step(self, batch, batch_idx):
+        return self.make_step(batch, batch_idx, step_name='test')
+
+    def on_test_batch_end(self, outputs, *args):
+         self.log_outputs(outputs, step_name='test')
+
+    
+    def predict_step(self, batch, batch_idx, dataloader_idx=0):
+        # https://pytorch-lightning.readthedocs.io/en/stable/common/lightning_module.html#inference
+        # this calls forward, while avoiding the need for e.g. model.eval(), torch.no_grad()
+        # x, y = batch  # would be usual format, but here, batch does not include labels
+        return self(batch)
+
+
 #Lightning!
 
 # Downsampling block for the Encoder
@@ -57,7 +127,7 @@ class resnet(nn.Module):
         h = self.block2(h)
         return self.act2(h + self.res_conv(x))
 
-class unet(nn.Module):
+class ZooBot3D(GenericLightningModule):
     def __init__(self,
                  output_dim = 34,
                  input_size = 128,
