@@ -8,6 +8,7 @@ from torch.nn import Functional as F
 import pytorch_lightning as pl
 from torchmetrics import Accuracy
 
+import pytorch_losses as losses
 
 class GenericLightningModule(pl.LightningModule):
     """
