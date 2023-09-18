@@ -90,10 +90,10 @@ class downsample(nn.Module):
 
 # Upsampling Block for the Decoder
 class upsample(nn.Module):
-        def __init__(self, in_channels, out_channels, **kwargs):
+    def __init__(self, in_channels, out_channels, **kwargs):
         super().__init__(**kwargs)
         self.conv = nn.ConvTranspose2d(in_channels, out_channels, 3,
-                              stride=2, padding='same')
+                                stride=2, padding='same')
 
     def forward(self, x):
         return self.conv(x)
@@ -102,7 +102,7 @@ class upsample(nn.Module):
 class ConvBlock(nn.Module):
     def __init__(self, in_chnnels, out_chnnels, **kwargs):
         super().__init__(**kwargs)
-        self.conv = nn.Conv2d(in_channels, out_channels, 3
+        self.conv = nn.Conv2d(in_channels, out_channels, 3,
                               stride=1, padding='same')
         self.batchnorm = nn.BatchNorm2d(out_channels)
 
@@ -133,12 +133,12 @@ class ZooBot3D(GenericLightningModule):
     def __init__(self,
                  output_dim = 34,
                  input_size = 128,
-                 n_channels=3
+                 n_channels=3,
                  n_filters=32,
                  dim_mults=(1, 2, 4, 8),
                  n_classes=4,
                  drop_rates=(0,0,0.3,0.3),
-                 test_time_dropout=False
+                 test_time_dropout=False,
                  head_dropout=0.5
                  ):
         super().__init__()

@@ -1,8 +1,14 @@
 import json
+import os
 
+import numpy as np
 from tqdm import tqdm
 import pandas as pd
 from astropy.io import fits
+from PIL import Image
+
+from segmap_utils import construct_segmap_image
+
 
 
 def save_segmaps(df: pd.DataFrame):
@@ -15,10 +21,15 @@ def save_segmaps(df: pd.DataFrame):
             'bar_mask': bar_marks
         }
 
-        save_loc = galaxy['local_gz3d_fits_loc'].replace('/fits_gz/', '/segmaps/').replace('.fits.gz', '.json')
-        # print(save_loc)
-        with open(save_loc, 'w') as f:
+        with open(galaxy['local_json_loc'], 'w') as f:
             json.dump(all_marks, f)
+
+        if len(spiral_marks) > 0:
+            spiral_im = construct_segmap_image(galaxy, spiral_marks)
+            Image.fromarray(spiral_im).save(galaxy['local_spiral_mask_loc'])
+        if len(bar_marks) > 0:
+            bar_im = construct_segmap_image(galaxy, bar_marks)
+            Image.fromarray(bar_im).save(galaxy['local_bar_mask_loc'])
 
 
 def extract_marks_for_galaxy(galaxy, which_marks):
@@ -42,6 +53,21 @@ def extract_marks_for_galaxy(galaxy, which_marks):
     return all_marks_by_users
 
 
+# def get_mask_image_for_galaxy(galaxy, user_marks):
+#     mask = construct_segmap_image(galaxy, user_marks)
+#     # print(mask.max())
+#     # exit()
+#     # mask = (mask*255/mask.max()).astype(np.uint8)
+#     # print(mask.min(), mask.max())
+#     return 
+
+            
+
 if __name__ == '__main__':
 
-    save_segmaps(pd.read_csv('/Users/user/repos/zoobot-3d/data/gz3d_and_gz_desi_master_catalog.csv'))
+    df = pd.read_csv('/Users/user/repos/zoobot-3d/data/gz3d_and_gz_desi_master_catalog.csv')
+
+    print(len(df))
+
+    save_segmaps(df)
+
