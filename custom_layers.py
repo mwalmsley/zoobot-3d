@@ -1,6 +1,17 @@
 import torch
 import torch.nn as nn
 
+# Downsampling block for the Encoder
+class DownSample(nn.Module):
+    def __init__(self, in_channels, out_channels, **kwargs):
+        super().__init__(**kwargs)
+        self.conv = nn.Conv2d(in_channels, out_channels, 3,
+                              stride=2, padding='same')
+
+    def forward(self, x):
+        return self.conv(x)
+
+
 # Upsampling Block for the Decoder
 class UpSample(nn.Module):
     def __init__(self, in_channels, out_channels, **kwargs):
