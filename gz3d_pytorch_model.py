@@ -9,6 +9,7 @@ import pytorch_lightning as pl
 from torchmetrics import Accuracy
 
 import pytorch_losses as losses
+from custom_layers import DownSample, UpSample, ConvBlock, ResNet
 
 class GenericLightningModule(pl.LightningModule):
     """
@@ -74,60 +75,6 @@ class GenericLightningModule(pl.LightningModule):
         # this calls forward, while avoiding the need for e.g. model.eval(), torch.no_grad()
         # x, y = batch  # would be usual format, but here, batch does not include labels
         return self(batch)
-
-
-#Lightning!
-
-# Downsampling block for the Encoder
-class downsample(nn.Module):
-    def __init__(self, in_channels, out_channels, **kwargs):
-        super().__init__(**kwargs)
-        self.conv = nn.Conv2d(in_channels, out_channels, 3,
-                              stride=2, padding='same')
-
-    def forward(self, x):
-        return self.conv(x)
-
-# Upsampling Block for the Decoder
-class upsample(nn.Module):
-    def __init__(self, in_channels, out_channels, **kwargs):
-        super().__init__(**kwargs)
-        self.conv = nn.ConvTranspose2d(in_channels, out_channels, 3,
-                                stride=2, padding='same')
-
-    def forward(self, x):
-        return self.conv(x)
-
-# Conv Block for ResNet
-class ConvBlock(nn.Module):
-    def __init__(self, in_chnnels, out_chnnels, **kwargs):
-        super().__init__(**kwargs)
-        self.conv = nn.Conv2d(in_channels, out_channels, 3,
-                              stride=1, padding='same')
-        self.batchnorm = nn.BatchNorm2d(out_channels)
-
-        self.block = nn.Sequential(self.conv,
-                                   self.batchnorm)
-
-    def forward(self, x):
-
-        return self.block(x)
-
-# Resnet Block
-class resnet(nn.Module):
-    def __init__(self, in_channels, out_channels, **kwargs):
-        super().__init__(**kwargs)
-        self.block1 = ConvBlock(in_channels, out_chanells)
-        self.act1 = nn.Mish()
-        self.block2 = ConvBlock(out_channels, out_channels)
-        self.res_conv = nn.Conv2d(out_channels, out_channels, 1, padding='same') if in_channels != out_channels else nn.Identity()
-        self.act2 = nn.Mish()
-
-    def forward(self, x):
-        h = self.block1(x)
-        h = self.act1(h)
-        h = self.block2(h)
-        return self.act2(h + self.res_conv(x))
 
 class ZooBot3D(GenericLightningModule):
     def __init__(self,
@@ -231,14 +178,14 @@ class pytorch_encoder_module(nn.Module):
             is_last = ind >= (num_resolutions - 1)
 
             self.downs.append([
-                resenet(dim_in, dim_out, name=f'resdown_{ind}_{dim_in}_{dim_out}'),
-                resenet(dim_out, dim_out, name=f'resdown_{ind}_{dim_out}_{dim_out}'),
+                ResNet(dim_in, dim_out, name=f'resdown_{ind}_{dim_in}_{dim_out}'),
+                ResNet(dim_out, dim_out, name=f'resdown_{ind}_{dim_out}_{dim_out}'),
                 nn.Dropout(drop_rates[ind]) if drop_rates[ind] > 0 else nn.Identity(),
-                downsample(dim_out, name=f'down_{ind}_{dim_out}') if not is_last else nn.Identity()
+                DownSample(dim_out, name=f'down_{ind}_{dim_out}') if not is_last else nn.Identity()
             ])
 
-        self.mid_block1 = resenet(dim_out, dim_out, name=f'resmid_1_{mid_dim}')
-        self.mid_block2 = resenet(dim_out, dim_out, name=f'resmid_2_{mid_dim}')
+        self.mid_block1 = ResNet(dim_out, dim_out, name=f'resmid_1_{mid_dim}')
+        self.mid_block2 = ResNet(dim_out, dim_out, name=f'resmid_2_{mid_dim}')
 
     def forward(self, x):
         h = [] # collect the skip conection outputs for the decoder
@@ -366,9 +313,9 @@ class pytorch_decoder_module(nn.Module):
             is_last = ind >= (num_resolutions - 1)
 
             self.ups.append([
-                resenet(dim_out, dim_in, name=f'resup_{ind}_{dim_out}_{dim_in}'),
-                resenet(dim_in, dim_in, name=f'resup_{ind}_{dim_in}_{dim_in}'),
-                upsample(dim_in, name=f'up_{ind}_{dim_in}') if not is_last else nn.Identity()
+                ResNet(dim_out, dim_in, name=f'resup_{ind}_{dim_out}_{dim_in}'),
+                ResNet(dim_in, dim_in, name=f'resup_{ind}_{dim_in}_{dim_in}'),
+                UpSample(dim_in, name=f'up_{ind}_{dim_in}') if not is_last else nn.Identity()
             ])
 
 
