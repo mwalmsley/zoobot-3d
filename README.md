@@ -69,3 +69,5 @@ For much later, we have downloaded the SAMI candidate target list.
     rsync --files-from data/galahad_jpg_to_copy.txt -e 'ssh -A -J walml@external.jb.man.ac.uk' walml@galahad.ast.man.ac.uk:/share/nas2/walml/galaxy_zoo/decals/dr8/jpg data/gz_desi/jpg
 
     rsync -az -e 'ssh -A -J walml@external.jb.man.ac.uk' data walml@galahad.ast.man.ac.uk:/share/nas2/walml/galaxy_zoo/segmentation
+
+    rsync -avz -e 'ssh -A -J walml@external.jb.man.ac.uk' walml@galahad.ast.man.ac.uk:/share/nas2/walml/galaxy_zoo/segmentation/data/desi/jpg data/desi
