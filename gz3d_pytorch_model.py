@@ -318,7 +318,7 @@ class pytorch_decoder_module(nn.Module):
             is_last = ind >= (num_resolutions - 1)
 
             self.ups.append([
-                ResNet(dim_out, dim_in),
+                ResNet(dim_out*2, dim_in),
                 ResNet(dim_in, dim_in),
                 UpSample(dim_in, dim_in) if not is_last else nn.Identity()
             ])
@@ -336,7 +336,7 @@ class pytorch_decoder_module(nn.Module):
         x, h = inputs # plit the encoder output and skip connections
 
         for rn1, rn2, up in self.ups:
-            x = x + h.pop()#torch.cat((x, h.pop()), dim=1)
+            x = torch.cat((x, h.pop()), dim=1)
             x = rn1(x)
             x = rn2(x)
             x = up(x)
