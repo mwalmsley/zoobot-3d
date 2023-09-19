@@ -183,7 +183,7 @@ class ZooBot3D(GenericLightningModule):
         x, (labels, seg_maps) = batch
         pred_labels, pred_maps = self(x)
         loss = self.calculate_and_log_loss((pred_labels, pred_maps), (labels, seg_maps), step_name)      
-        return {'loss': loss, 'predictions': predictions, 'labels': labels}
+        return {'loss': loss, 'predictions': pred_labels, 'labels': labels, 'predicted_maps': pred_maps, 'seg_maps': seg_maps}
 
     def calculate_and_log_loss(self, predictions, labels_maps, step_name):
         # loss logging, found it!
