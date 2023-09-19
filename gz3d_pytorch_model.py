@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+import logging
+from functools import partial
 
 import torch
-import torch.nn as nn
-from torch.nn import Functional as F
+from torch import nn, Tensor
+from torch.nn import functional as F
 
 import pytorch_lightning as pl
 from torchmetrics import Accuracy
 
 import pytorch_losses as losses
 from custom_layers import DownSample, UpSample, ConvBlock, ResNet
+import efficientnet_custom
 
 class GenericLightningModule(pl.LightningModule):
     """
@@ -86,7 +89,8 @@ class ZooBot3D(GenericLightningModule):
                  n_classes=4,
                  drop_rates=(0,0,0.3,0.3),
                  test_time_dropout=False,
-                 head_dropout=0.5
+                 head_dropout=0.5,
+                 question_index_groups=None
                  ):
         super().__init__()
         self.channels = n_channels
@@ -178,14 +182,14 @@ class pytorch_encoder_module(nn.Module):
             is_last = ind >= (num_resolutions - 1)
 
             self.downs.append([
-                ResNet(dim_in, dim_out, name=f'resdown_{ind}_{dim_in}_{dim_out}'),
-                ResNet(dim_out, dim_out, name=f'resdown_{ind}_{dim_out}_{dim_out}'),
+                ResNet(dim_in, dim_out),
+                ResNet(dim_out, dim_out),
                 nn.Dropout(drop_rates[ind]) if drop_rates[ind] > 0 else nn.Identity(),
-                DownSample(dim_out, name=f'down_{ind}_{dim_out}') if not is_last else nn.Identity()
+                DownSample(dim_out, dim_out) if not is_last else nn.Identity()
             ])
 
-        self.mid_block1 = ResNet(dim_out, dim_out, name=f'resmid_1_{mid_dim}')
-        self.mid_block2 = ResNet(dim_out, dim_out, name=f'resmid_2_{mid_dim}')
+        self.mid_block1 = ResNet(dim_out, dim_out)
+        self.mid_block2 = ResNet(dim_out, dim_out)
 
     def forward(self, x):
         h = [] # collect the skip conection outputs for the decoder
@@ -204,7 +208,7 @@ class pytorch_encoder_module(nn.Module):
 
 def get_encoder_dim(encoder, input_size, channels):
     x = torch.randn(1, channels, input_size, input_size)  # batch size of 1
-    return encoder(x).shape[1] # return number of channels, global pooling added later
+    return encoder(x)[0].shape[1] # return number of channels, global pooling added later
 
 # zoobot classification head with dirchelet loss
 
@@ -233,6 +237,7 @@ def get_pytorch_dirichlet_head(encoder_dim: int, output_dim: int, test_time_drop
     # yes AdaptiveAvgPool2d, encoder output needs to be for both classifier and decoder  
     pooling_layer = nn.AdaptiveAvgPool2d(1)
     modules_to_use.append(pooling_layer)
+    modules_to_use.append(nn.Flatten(start_dim=1))
     if test_time_dropout:
         logging.info('Using test-time dropout')
         dropout_layer = custom_layers.PermaDropout
@@ -241,7 +246,7 @@ def get_pytorch_dirichlet_head(encoder_dim: int, output_dim: int, test_time_drop
         dropout_layer = torch.nn.Dropout
     modules_to_use.append(dropout_layer(dropout_rate))
     # TODO could optionally add a bottleneck layer here
-    modules_to_use.append(efficientnet_custom.custom_top_dirichlet(encoder_dim, output_dim))
+    modules_to_use.append(custom_top_dirichlet(encoder_dim, output_dim))
 
     return nn.Sequential(*modules_to_use)
 
@@ -313,18 +318,16 @@ class pytorch_decoder_module(nn.Module):
             is_last = ind >= (num_resolutions - 1)
 
             self.ups.append([
-                ResNet(dim_out, dim_in, name=f'resup_{ind}_{dim_out}_{dim_in}'),
-                ResNet(dim_in, dim_in, name=f'resup_{ind}_{dim_in}_{dim_in}'),
-                UpSample(dim_in, name=f'up_{ind}_{dim_in}') if not is_last else nn.Identity()
+                ResNet(dim_out, dim_in),
+                ResNet(dim_in, dim_in),
+                UpSample(dim_in, dim_in) if not is_last else nn.Identity()
             ])
 
 
-        self.final_conv = nn.Sequential([
-            ConvBlock(in_out[0], in_out[0]),
+        self.final_conv = nn.Sequential(ConvBlock(in_out[0][1], in_out[0][0]),
             nn.Mish(),
-            nn.Conv2d(in_out[0], n_classes, 1, padding='same'),
+            nn.Conv2d(in_out[0][0], n_classes, 1, padding='same'),
             nn.ReLU(),
-            ]
         )
 
 
@@ -333,7 +336,7 @@ class pytorch_decoder_module(nn.Module):
         x, h = inputs # plit the encoder output and skip connections
 
         for rn1, rn2, up in self.ups:
-            x = torch.cat((x, h.pop()), dim=1)
+            x = x + h.pop()#torch.cat((x, h.pop()), dim=1)
             x = rn1(x)
             x = rn2(x)
             x = up(x)
