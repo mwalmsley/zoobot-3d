@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 # Upsampling Block for the Decoder
-class upsample(nn.Module):
+class UpSample(nn.Module):
     def __init__(self, in_channels, out_channels, **kwargs):
         super().__init__(**kwargs)
         self.conv = nn.ConvTranspose2d(in_channels, out_channels, 3,
@@ -27,7 +27,7 @@ class ConvBlock(nn.Module):
         return self.block(x)
 
 # Resnet Block
-class resnet(nn.Module):
+class ResNet(nn.Module):
     def __init__(self, in_channels, out_channels, **kwargs):
         super().__init__(**kwargs)
         self.block1 = ConvBlock(in_channels, out_chanells)
