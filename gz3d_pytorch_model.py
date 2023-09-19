@@ -166,27 +166,7 @@ class ZooBot3D(GenericLightningModule):
         # build decoder
         self.decoder = pytorch_decoder_module(self.in_out,
                                               n_classes)
-
-    def make_step(self, batch, batch_idx, step_name):
-        ### This is going to override the generic make step, needs to get predictions for both labels and seg maps
-        ### Possibly where we skip sep maps for images that don't need them?
-        return
-
-    def calculate_and_log_loss(self, predictions, labels, step_name):
-        """
-        loss logging, found it!
-        # self.loss_func returns shape of (galaxy, question), mean to ()
-        multiq_loss = self.loss_func(predictions, labels, sum_over_questions=False)
-        # if hasattr(self, 'schema'):
-        self.log_loss_per_question(multiq_loss, prefix=step_name)
-        # sum over questions and take a per-device mean
-        # for DDP strategy, batch size is constant (batches are not divided, data pool is divided)
-        # so this will be the global per-example mean
-        loss = torch.mean(torch.sum(multiq_loss, axis=1))
-        """
-        return loss
-
-
+                     
     def forward(self, x):
 
         x, h = self.encoder(x)
@@ -196,6 +176,45 @@ class ZooBot3D(GenericLightningModule):
         y = self.decoder((x, h))
 
         return z, y
+
+    def make_step(self, batch, batch_idx, step_name):
+        ### This is going to override the generic make step, needs to get predictions for both labels and seg maps
+        ### Possibly where we skip sep maps for images that don't need them?
+        x, (labels, seg_maps) = batch
+        pred_labels, pred_maps = self(x)
+        loss = self.calculate_and_log_loss((pred_labels, pred_maps), (labels, seg_maps), step_name)      
+        return {'loss': loss, 'predictions': predictions, 'labels': labels}
+
+    def calculate_and_log_loss(self, predictions, labels_maps, step_name):
+        # loss logging, found it!
+        pred_labels, pred_maps = predictions
+        labels, seg_maps = labels_maps
+        # self.loss_func returns shape of (galaxy, question), mean to ()
+        multiq_loss = self.dirichlet_loss(pred_labels, labels, sum_over_questions=False)
+        seg_loss = self.seg_loss(seg_maps, pred_maps, reduction='none') # Reduction here?
+        # if hasattr(self, 'schema'):
+        self.log_loss_per_question(multiq_loss, prefix=step_name)
+        self.log_loss_per_seg_map(seg_loss, prefix=step_name)
+        # sum over questions and take a per-device mean
+        # for DDP strategy, batch size is constant (batches are not divided, data pool is divided)
+        # so this will be the global per-example mean
+        loss = torch.mean(torch.sum(multiq_loss, axis=1) + torch.sum(seg_loss, axis=(1,2,3)))
+        return loss
+        
+    def log_loss_per_question(self, multiq_loss, prefix):
+        # log questions individually
+        # TODO need schema attribute or similar to have access to question names, this will do for now
+        # unlike Finetuneable..., does not use TorchMetrics, simply logs directly
+        # TODO could use TorchMetrics and for q in schema, self.q_metric loop
+        for question_n in range(multiq_loss.shape[1]):
+            self.log(f'{prefix}/epoch_questions/question_{question_n}_loss:0', torch.mean(multiq_loss[:, question_n]), on_epoch=True, on_step=False, sync_dist=True)
+            
+    def log_loss_per_seg_map(self, seg_loss, prefix):
+        # log seg maps individually
+        # Check syntax here, is it going to log the bar and spiral seg loss separately?
+        for seg_map_n in range(seg_loss.shape[1]):
+            self.log(f'{prefix}/epoch_seg_maps/seg_map_{seg_map_n}_loss:0', torch.mean(seg_loss[:, seg_map_n, :, :]), on_epoch=True, on_step=False, sync_dist=True)
+
 
 # Standalone encoder class: return both the encoder output and the skip connections, include midblocks
 class pytorch_encoder_module(nn.Module):
