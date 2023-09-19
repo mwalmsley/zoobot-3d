@@ -6,7 +6,7 @@ class DownSample(nn.Module):
     def __init__(self, in_channels, out_channels, **kwargs):
         super().__init__(**kwargs)
         self.conv = nn.Conv2d(in_channels, out_channels, 3,
-                              stride=2, padding='same')
+                              stride=2, padding=0)
 
     def forward(self, x):
         return self.conv(x)
@@ -17,14 +17,14 @@ class UpSample(nn.Module):
     def __init__(self, in_channels, out_channels, **kwargs):
         super().__init__(**kwargs)
         self.conv = nn.ConvTranspose2d(in_channels, out_channels, 3,
-                                stride=2, padding='same')
+                                stride=2, padding=0)
 
     def forward(self, x):
         return self.conv(x)
 
 # Conv Block for ResNet
 class ConvBlock(nn.Module):
-    def __init__(self, in_chnnels, out_chnnels, **kwargs):
+    def __init__(self, in_channels, out_channels, **kwargs):
         super().__init__(**kwargs)
         self.conv = nn.Conv2d(in_channels, out_channels, 3,
                               stride=1, padding='same')
@@ -41,10 +41,10 @@ class ConvBlock(nn.Module):
 class ResNet(nn.Module):
     def __init__(self, in_channels, out_channels, **kwargs):
         super().__init__(**kwargs)
-        self.block1 = ConvBlock(in_channels, out_chanells)
+        self.block1 = ConvBlock(in_channels, out_channels)
         self.act1 = nn.Mish()
         self.block2 = ConvBlock(out_channels, out_channels)
-        self.res_conv = nn.Conv2d(out_channels, out_channels, 1, padding='same') if in_channels != out_channels else nn.Identity()
+        self.res_conv = nn.Conv2d(in_channels, out_channels, 1, padding='same') if in_channels != out_channels else nn.Identity()
         self.act2 = nn.Mish()
 
     def forward(self, x):
