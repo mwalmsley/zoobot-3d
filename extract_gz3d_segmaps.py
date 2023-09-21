@@ -31,13 +31,15 @@ def save_segmaps(df: pd.DataFrame, overwrite=False):
         if overwrite or not os.path.isfile(spiral_loc):
             if len(spiral_marks) > 0:
                 spiral_im = construct_segmap_image(galaxy, spiral_marks)
-                Image.fromarray(spiral_im).save(spiral_loc)
+                if spiral_im.max() > 0:
+                    Image.fromarray(spiral_im).save(spiral_loc)
 
         bar_loc = galaxy['local_bar_mask_loc']
         if overwrite or not os.path.isfile(bar_loc):
             if len(bar_marks) > 0:
                 bar_im = construct_segmap_image(galaxy, bar_marks)
-                Image.fromarray(bar_im).save(bar_loc)
+                if bar_im.max() > 0:
+                    Image.fromarray(bar_im).save(bar_loc)
 
 
 def extract_marks_for_galaxy(galaxy, which_marks):

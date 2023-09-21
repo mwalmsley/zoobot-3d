@@ -19,7 +19,7 @@ def construct_segmap_image(galaxy, marks_by_users):
 
     # convert to RGB image
     if mask.max() == 0:  # empty mask :(
-        mask_im = Image.fromarray(np.zeros((manga_segmap_dim, manga_segmap_dim)))
+        mask_im = Image.fromarray(np.zeros((manga_segmap_dim, manga_segmap_dim)).astype(np.uint8))
     else:
         mask_im = Image.fromarray((255*mask/mask.max()).astype(np.uint8))
 
