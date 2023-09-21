@@ -11,7 +11,7 @@ from segmap_utils import construct_segmap_image
 
 
 
-def save_segmaps(df: pd.DataFrame):
+def save_segmaps(df: pd.DataFrame, overwrite=False):
 
     for _, galaxy in tqdm(list(df.iterrows())):
         spiral_marks = extract_marks_for_galaxy(galaxy, 'spiral_mask')
@@ -20,16 +20,23 @@ def save_segmaps(df: pd.DataFrame):
             'spiral_mask': spiral_marks,
             'bar_mask': bar_marks
         }
+        
+        marks_loc = galaxy['local_json_loc']
+        if overwrite or not os.path.isfile(marks_loc):
+            with open(marks_loc, 'w') as f:
+                json.dump(all_marks, f)
 
-        with open(galaxy['local_json_loc'], 'w') as f:
-            json.dump(all_marks, f)
+        spiral_loc = galaxy['local_spiral_mask_loc']
+        if overwrite or not os.path.isfile(spiral_loc):
+            if len(spiral_marks) > 0:
+                spiral_im = construct_segmap_image(galaxy, spiral_marks)
+                Image.fromarray(spiral_im).save(spiral_loc)
 
-        if len(spiral_marks) > 0:
-            spiral_im = construct_segmap_image(galaxy, spiral_marks)
-            Image.fromarray(spiral_im).save(galaxy['local_spiral_mask_loc'])
-        if len(bar_marks) > 0:
-            bar_im = construct_segmap_image(galaxy, bar_marks)
-            Image.fromarray(bar_im).save(galaxy['local_bar_mask_loc'])
+        bar_loc = galaxy['local_bar_mask_loc']
+        if overwrite or not os.path.isfile(bar_loc):
+            if len(bar_marks) > 0:
+                bar_im = construct_segmap_image(galaxy, bar_marks)
+                Image.fromarray(bar_im).save(bar_loc)
 
 
 def extract_marks_for_galaxy(galaxy, which_marks):
@@ -53,21 +60,16 @@ def extract_marks_for_galaxy(galaxy, which_marks):
     return all_marks_by_users
 
 
-# def get_mask_image_for_galaxy(galaxy, user_marks):
-#     mask = construct_segmap_image(galaxy, user_marks)
-#     # print(mask.max())
-#     # exit()
-#     # mask = (mask*255/mask.max()).astype(np.uint8)
-#     # print(mask.min(), mask.max())
-#     return 
-
-            
-
 if __name__ == '__main__':
 
     df = pd.read_csv('/Users/user/repos/zoobot-3d/data/gz3d_and_gz_desi_master_catalog.csv')
+    
+    # if os.path.isdir('/share/nas2'):
+    df = df.sample(len(df))  # for Galahad
+    df['local_json_loc'] = '/share/nas2/walml/galaxy_zoo/segmentation/' + df['local_json_loc']
+    df['local_spiral_mask_loc'] = '/share/nas2/walml/galaxy_zoo/segmentation/' + df['local_spiral_mask_loc']
+    df['local_bar_mask_loc'] = '/share/nas2/walml/galaxy_zoo/segmentation/' + df['local_bar_mask_loc']
 
     print(len(df))
 
     save_segmaps(df)
-
