@@ -73,14 +73,14 @@ class ZooBot3D(define_model.GenericLightningModule):
         # x, (labels, seg_maps) = batch
 
 
-        pred_labels, pred_maps = self(batch['image'])
+        pred_labels, pred_maps = self(batch['image'])  # forward pass of both encoder and decoder
         loss = self.calculate_and_log_loss((pred_labels, pred_maps), batch, step_name)      
         return {
             'loss': loss,
             'predictions': pred_labels,
-            'labels': batch['label_cols'],
-            'predicted_maps': pred_maps,
-            'seg_maps': seg_maps
+            # 'labels': batch['label_cols'],
+            'predicted_maps': pred_maps
+            # 'seg_maps': seg_maps
         }
 
     def calculate_and_log_loss(self, predictions, batch, step_name):
@@ -89,6 +89,7 @@ class ZooBot3D(define_model.GenericLightningModule):
         # self.loss_func returns shape of (galaxy, question), mean to ()
         multiq_loss = self.dirichlet_loss(pred_labels, batch['label_cols'], sum_over_questions=False)
 
+        # masks are 
         seg_maps = torch.stack([batch['spiral_mask'], batch['bar_mask']])  # TODO dims probably wrong
         seg_loss = self.seg_loss(seg_maps, pred_maps, reduction='none') # Reduction here?
 
