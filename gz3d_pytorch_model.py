@@ -28,11 +28,16 @@ class ZooBot3D(define_model.GenericLightningModule):
                  drop_rates=(0,0,0.3,0.3),
                  test_time_dropout=False,
                  head_dropout=0.5,
-                 question_index_groups=None
+                 question_index_groups=None,
+                 learning_rate=1e-3,
+                 weight_decay=0.05
                  ):
         super().__init__()
         self.channels = n_channels
         self.input_size = input_size
+        self.learning_rate = learning_rate
+        self.weight_decay = weight_decay
+
         dims = [self.channels, *map(lambda m: n_filters * m, dim_mults)]
         self.in_out = list(zip(dims[:-1], dims[1:]))
         self.drop_rates = drop_rates
@@ -66,6 +71,14 @@ class ZooBot3D(define_model.GenericLightningModule):
         y = self.decoder((x, h))
 
         return z, y
+    
+    def configure_optimizers(self):
+        return torch.optim.AdamW(
+            self.parameters(),
+            lr=self.learning_rate,
+            # betas=self.betas,
+            weight_decay=self.weight_decay
+        )  
 
     def make_step(self, batch, batch_idx, step_name):
         ### This is going to override the generic make step, needs to get predictions for both labels and seg maps

@@ -10,6 +10,7 @@ class SegmentationDataModule(pl.LightningDataModule):
             train_catalog: pd.DataFrame,
             val_catalog: pd.DataFrame,
             test_catalog=None,
+            label_cols=None,
             transform=None,
             batch_size: int=32,
             num_workers: int=8,
@@ -20,6 +21,7 @@ class SegmentationDataModule(pl.LightningDataModule):
         self.train_catalog = train_catalog
         self.val_catalog = val_catalog
         self.test_catalog = test_catalog
+        self.label_cols = label_cols
         self.transform = transform
         self.batch_size = batch_size
         self.num_workers = num_workers
@@ -30,12 +32,12 @@ class SegmentationDataModule(pl.LightningDataModule):
         if stage == "fit":
             self.train_dataset = pytorch_dataset.SegmentationGalaxyDataset(
             catalog=self.train_catalog,
-            label_cols=None,
+            label_cols=self.label_cols,
             transform=self.transform
             )
             self.val_dataset = pytorch_dataset.SegmentationGalaxyDataset(
                 catalog=self.val_catalog,
-                label_cols=None,
+                label_cols=self.label_cols,
                 transform=self.transform
             )
         # Assign test dataset for use in dataloader(s)

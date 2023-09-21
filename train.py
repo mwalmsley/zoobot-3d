@@ -1,4 +1,5 @@
 import typing
+import os
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -7,8 +8,9 @@ import pytorch_lightning as pl
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 
-from galaxy_datasets import transforms
+from zoobot.shared.schemas import decals_all_campaigns_ortho_schema
 
+from galaxy_datasets import transforms
 import gz3d_pytorch_model, pytorch_datamodule
 
 # lazy copy of the below, but with additional_targets=
@@ -43,6 +45,9 @@ def default_segmentation_transforms(
             always_apply=True
         ),  # new aspect ratio
         A.VerticalFlip(p=0.5),
+        # new here, for the byte masks
+        A.ToFloat(max_value=255.),
+        ToTensorV2()  # channels first, torch convention
     ]
 
     return A.Compose(
@@ -57,24 +62,30 @@ def main():
     df = df[df['smooth-or-featured_featured-or-disk_fraction'] > 0.5]
     df = df[df['disk-edge-on_yes_fraction'] < 0.5]
     df = df[df['has-spiral-arms_yes_fraction'] > 0.5]
+    df['spiral_mask_exists'] = df['local_spiral_mask_loc'].apply(os.path.isfile)
+    df = df.query('spiral_mask_exists')
     print(len(df))
 
+    schema = decals_all_campaigns_ortho_schema
+
     image_size = 128
-    model = gz3d_pytorch_model.ZooBot3D(input_size=image_size)
+    model = gz3d_pytorch_model.ZooBot3D(input_size=image_size, question_index_groups=schema.question_index_groups)
 
     datamodule = pytorch_datamodule.SegmentationDataModule(
-        train_catalog=df[:2],
-        val_catalog=df[2:4],
-        test_catalog=df[4:6],
+        train_catalog=df[:100],
+        val_catalog=df[200:300],
+        test_catalog=df[400:500],
+        label_cols=schema.label_cols,
         batch_size=2,
         num_workers=1,
-        transform=default_segmentation_transforms()
+        transform=default_segmentation_transforms(resize_after_crop=128)
     )
     datamodule.setup('fit')
 
     trainer = pl.Trainer(
-        accelerator='auto',
-        max_epochs=2
+        accelerator='cpu',
+        max_epochs=2,
+        precision='32-true'
     )
 
     trainer.fit(model, datamodule)

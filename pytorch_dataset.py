@@ -50,14 +50,15 @@ class SegmentationGalaxyDataset(galaxy_dataset.GalaxyDataset):
         segmap_dict = {}
         spiral_mask_loc = galaxy['local_spiral_mask_loc']
         if os.path.isfile(spiral_mask_loc):
-            segmap_dict['spiral_mask'] = np.array(galaxy_dataset.load_img_file(spiral_mask_loc))
+            segmap_dict['spiral_mask'] = np.expand_dims(np.array(galaxy_dataset.load_img_file(spiral_mask_loc)), 2)
+            # print(segmap_dict['spiral_mask'].shape)
         else:
-            segmap_dict['spiral_mask'] = np.zeros((424, 424)).astype(np.uint8)
+            segmap_dict['spiral_mask'] = np.zeros((424, 424, 1)).astype(np.uint8)
         bar_mask_loc = galaxy['local_bar_mask_loc']
         if os.path.isfile(bar_mask_loc):
-            segmap_dict['bar_mask'] = np.array(galaxy_dataset.load_img_file(bar_mask_loc))
+            segmap_dict['bar_mask'] = np.expand_dims(np.array(galaxy_dataset.load_img_file(bar_mask_loc)), 2)
         else:
-            segmap_dict['bar_mask'] = np.zeros((424, 424)).astype(np.uint8)
+            segmap_dict['bar_mask'] = np.zeros((424, 424, 1)).astype(np.uint8)
 
         if self.transform:
             transformed = self.transform(image=image, **segmap_dict)
@@ -66,12 +67,13 @@ class SegmentationGalaxyDataset(galaxy_dataset.GalaxyDataset):
             del transformed['image']
             segmap_dict = transformed
             # segmap_dict = dict([(k, v) for k, v in transformed.items() if k != 'image'])
+    
+        outputs['image'] = image
+        # e.g. spiral_mask, bar_mask (inplace)
+        outputs.update(segmap_dict)
 
-        if self.label_cols is None:
-            outputs['image'] = image
-            outputs.update(segmap_dict)  # e.g. spiral_mask, bar_mask (inplace)
-        else:
-            # load the labels. If no self.label_cols, will 
+        if self.label_cols is not None:
+            # load the labels. If no self.label_cols, key will not exist
             label = galaxy_dataset.get_galaxy_label(galaxy, self.label_cols)    
 
             # I never use this tbh
@@ -80,7 +82,7 @@ class SegmentationGalaxyDataset(galaxy_dataset.GalaxyDataset):
             # no effect on mask labels
             outputs['label_cols'] = label
 
-        # print(outputs)
+        
         return outputs
 
 

@@ -71,3 +71,7 @@ For much later, we have downloaded the SAMI candidate target list.
     rsync -az -e 'ssh -A -J walml@external.jb.man.ac.uk' data walml@galahad.ast.man.ac.uk:/share/nas2/walml/galaxy_zoo/segmentation
 
     rsync -avz -e 'ssh -A -J walml@external.jb.man.ac.uk' walml@galahad.ast.man.ac.uk:/share/nas2/walml/galaxy_zoo/segmentation/data/desi/jpg data/desi
+
+    rsync -avz -e 'ssh -A -J walml@external.jb.man.ac.uk' /Users/user/repos/zoobot-3d/data/*.csv walml@galahad.ast.man.ac.uk:/share/nas2/walml/galaxy_zoo/segmentation/data
+
+    rsync -avz -e 'ssh -A -J walml@external.jb.man.ac.uk' walml@galahad.ast.man.ac.uk:/share/nas2/walml/galaxy_zoo/segmentation/data/gz3d/segmaps/masks data/gz3d/segmaps
