@@ -1,5 +1,6 @@
 import json
 import os
+import logging
 
 import numpy as np
 from tqdm import tqdm
@@ -62,14 +63,19 @@ def extract_marks_for_galaxy(galaxy, which_marks):
 
 if __name__ == '__main__':
 
-    df = pd.read_csv('/Users/user/repos/zoobot-3d/data/gz3d_and_gz_desi_master_catalog.csv')
-    
-    # if os.path.isdir('/share/nas2'):
-    df = df.sample(len(df))  # for Galahad
-    df['local_json_loc'] = '/share/nas2/walml/galaxy_zoo/segmentation/' + df['local_json_loc']
-    df['local_spiral_mask_loc'] = '/share/nas2/walml/galaxy_zoo/segmentation/' + df['local_spiral_mask_loc']
-    df['local_bar_mask_loc'] = '/share/nas2/walml/galaxy_zoo/segmentation/' + df['local_bar_mask_loc']
+    logging.basicConfig(level=logging.INFO)
 
+
+    
+    if os.path.isdir('/share/nas2'):
+        df = pd.read_csv('/share/nas2/walml/galaxy_zoo/segmentation/data/gz3d_and_gz_desi_master_catalog.csv')
+        df = df.sample(len(df))  # for Galahad
+        df['local_json_loc'] = '/share/nas2/walml/galaxy_zoo/segmentation/' + df['local_json_loc']
+        df['local_spiral_mask_loc'] = '/share/nas2/walml/galaxy_zoo/segmentation/' + df['local_spiral_mask_loc']
+        df['local_bar_mask_loc'] = '/share/nas2/walml/galaxy_zoo/segmentation/' + df['local_bar_mask_loc']
+    else:
+        df = pd.read_csv('/Users/user/repos/zoobot-3d/data/gz3d_and_gz_desi_master_catalog.csv')
+    
     print(len(df))
 
     save_segmaps(df)
