@@ -4,10 +4,11 @@
 #SBATCH --no-requeue                                    # Do not resubmit a failed job
 #SBATCH --time=72:00:00       
 
-#SBATCH --mem=0 
-#SBATCH --exclusive   # only one task per node
+#SBATCH --mem=10GB
 #SBATCH --ntasks 1
-#SBATCH --cpus-per-task=24
+#SBATCH --cpus-per-task=8
+
+#SBATCH --array=0-16
 
 pwd; hostname; date
 

@@ -65,24 +65,28 @@ if __name__ == '__main__':
 
     logging.basicConfig(level=logging.INFO)
 
+    
+    
 
-    # df = pd.read_csv('/Users/user/repos/zoobot-3d/data/gz3d_and_gz_desi_master_catalog.csv')
 
 
-# if os.path.isdir('/share/nas2'):
-    df = pd.read_csv('/share/nas2/walml/galaxy_zoo/segmentation/data/gz3d_and_gz_desi_master_catalog.csv')
+    if os.path.isdir('/share/nas2'):
+        logging.info('Galahad paths')
+        base_dir = '/share/nas2/walml/galaxy_zoo/segmentation/'
+    else:
+        logging.info('Local paths')
+        base_dir = '/Users/user/repos/zoobot-3d/'
+
+    df = pd.read_csv(base_dir + 'data/gz3d_and_gz_desi_master_catalog.csv')
     df = df.sample(len(df))  # for Galahad
-    
-    df['local_gz3d_fits_loc'] = '/share/nas2/walml/galaxy_zoo/segmentation/' + df['local_gz3d_fits_loc']
-    df['local_json_loc'] = '/share/nas2/walml/galaxy_zoo/segmentation/' + df['local_json_loc']
-    df['local_spiral_mask_loc'] = '/share/nas2/walml/galaxy_zoo/segmentation/' + df['local_spiral_mask_loc']
-    df['local_bar_mask_loc'] = '/share/nas2/walml/galaxy_zoo/segmentation/' + df['local_bar_mask_loc']
-# else:
-    # df = pd.read_csv('/Users/user/repos/zoobot-3d/data/gz3d_and_gz_desi_master_catalog.csv')
 
-    print(df['local_gz3d_fits_loc'].iloc[0])
-    # exit()
+    df['local_gz3d_fits_loc'] = base_dir + df['local_gz3d_fits_loc']
+    df['local_json_loc'] = base_dir + df['local_json_loc']
+    df['local_spiral_mask_loc'] = base_dir + df['local_spiral_mask_loc']
+    df['local_bar_mask_loc'] = base_dir + df['local_bar_mask_loc']
+
+    logging.info(df['local_gz3d_fits_loc'].iloc[0])
     
-    print(len(df))
+    logging.info(len(df))
 
     save_segmaps(df)
