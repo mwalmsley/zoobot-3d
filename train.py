@@ -92,8 +92,7 @@ def main():
         precision = '32-true'
         log_every_n_steps = 10
     else:
-        # max_galaxies = None
-        max_galaxies = 500
+        max_galaxies = None
         image_size = 224
         seg_loss_weighting = 100
         batch_size = 128

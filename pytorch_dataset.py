@@ -1,16 +1,11 @@
-import json
 import logging
-import io
 import os
 
+import cv2
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-from PIL import Image
 import albumentations as A
-from albumentations.pytorch import ToTensorV2
-
-import segmap_utils
 
 
 from galaxy_datasets.pytorch import galaxy_dataset
@@ -33,7 +28,7 @@ class SegmentationGalaxyDataset(galaxy_dataset.GalaxyDataset):
         # load the image into memory
         image_loc = galaxy['local_desi_jpg_loc']
         try:
-            image = np.array(galaxy_dataset.load_img_file(image_loc))
+            image = load_image(image_loc, greyscale=False)
             # HWC PIL image, 0-255 uint8
         except Exception as e:
             logging.critical('Cannot load {}'.format(image_loc))
@@ -50,14 +45,16 @@ class SegmentationGalaxyDataset(galaxy_dataset.GalaxyDataset):
         segmap_dict = {}
         spiral_mask_loc = galaxy['local_spiral_mask_loc']
         if os.path.isfile(spiral_mask_loc):
-            segmap_dict['spiral_mask'] = np.expand_dims(np.array(galaxy_dataset.load_img_file(spiral_mask_loc)), 2)
-            # print(segmap_dict['spiral_mask'].shape)
+            # PIL loads as HW, expand to HW1 (where 1 is channels)
+            segmap_dict['spiral_mask'] = np.expand_dims(load_image(spiral_mask_loc, greyscale=True), 2)
+            assert segmap_dict['spiral_mask'].shape == (image.shape[0], image.shape[1], 1), segmap_dict['spiral_mask'].shape
         else:
             # need to always return something so that batch elements will be stackable
             segmap_dict['spiral_mask'] = np.zeros((image.shape[0], image.shape[1], 1)).astype(np.uint8)
         bar_mask_loc = galaxy['local_bar_mask_loc']
         if os.path.isfile(bar_mask_loc):
-            segmap_dict['bar_mask'] = np.expand_dims(np.array(galaxy_dataset.load_img_file(bar_mask_loc)), 2)
+            segmap_dict['bar_mask'] = np.expand_dims(load_image(bar_mask_loc, greyscale=True), 2)
+            assert segmap_dict['bar_mask'].shape == (image.shape[0], image.shape[1], 1), segmap_dict['bar_mask'].shape
         else:
             segmap_dict['bar_mask'] = np.zeros((image.shape[0], image.shape[1], 1)).astype(np.uint8)
 
@@ -168,6 +165,13 @@ if __name__ == '__main__':
         ax2.imshow(outputs['image'])  # default target keyed as image
         plt.show()
 
+
+def load_image(loc, greyscale=False):
+    image = cv2.imread(loc)
+    if greyscale:
+        return cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    else:
+        return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
 """
 

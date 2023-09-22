@@ -174,3 +174,4 @@ cython_debug/
 lighting_dir
 wandb
 results/models
+*.ckpt
