@@ -189,7 +189,7 @@ class ZooBot3D(define_model.GenericLightningModule):
         wandb.log({"galaxy_image": galaxy_image})
 
 # Standalone encoder class: return both the encoder output and the skip connections, include midblocks
-class pytorch_encoder_module(pl.LightningModule):  # LightningModule purely for easy GPU support, no callbacks etc
+class pytorch_encoder_module(nn.Module):
     def __init__(self, 
                  in_out,
                  drop_rates,
@@ -202,15 +202,17 @@ class pytorch_encoder_module(pl.LightningModule):  # LightningModule purely for 
         for ind, (dim_in, dim_out) in enumerate(in_out):
             is_last = ind >= (num_resolutions - 1)
 
-            self.downs.append([
+            self.downs.append(torch.nn.ModuleList([
                 ResNet(dim_in, dim_out),
                 ResNet(dim_out, dim_out),
                 nn.Dropout(drop_rates[ind]) if drop_rates[ind] > 0 else nn.Identity(),
                 DownSample(dim_out, dim_out) if not is_last else nn.Identity()
-            ])
+            ]))
 
         self.mid_block1 = ResNet(dim_out, dim_out)
         self.mid_block2 = ResNet(dim_out, dim_out)
+
+        self.downs = torch.nn.ModuleList(self.downs)
 
     def forward(self, x):
         h = [] # collect the skip conection outputs for the decoder
@@ -274,7 +276,7 @@ def get_pytorch_dirichlet_head(encoder_dim: int, output_dim: int, test_time_drop
 
 # decoder clss, include the skip connections — how to save on GPU cycles by not forward passing unecessarily?
 
-class pytorch_decoder_module(pl.LightningModule):
+class pytorch_decoder_module(nn.Module):
     def __init__(self,
                  in_out,
                  n_classes,
@@ -287,11 +289,13 @@ class pytorch_decoder_module(pl.LightningModule):
         for ind, (dim_in, dim_out) in enumerate(reversed(in_out[1:])):
             is_last = ind >= (num_resolutions - 1)
 
-            self.ups.append([
-                ResNet(dim_out*2, dim_in),
-                ResNet(dim_in, dim_in),
-                UpSample(dim_in, dim_in) if not is_last else nn.Identity()
-            ])
+            self.ups.append(torch.nn.ModuleList(
+                [
+                    ResNet(dim_out*2, dim_in),
+                    ResNet(dim_in, dim_in),
+                    UpSample(dim_in, dim_in) if not is_last else nn.Identity()
+                ])
+            )
 
 
         self.final_conv = nn.Sequential(ConvBlock(in_out[0][1], in_out[0][0]),
@@ -299,6 +303,8 @@ class pytorch_decoder_module(pl.LightningModule):
             nn.Conv2d(in_out[0][0], n_classes, 1, padding='same'),
             nn.ReLU(),
         )
+
+        self.ups = nn.ModuleList(self.ups)
 
 
     def forward(self, inputs):
@@ -327,3 +333,5 @@ if __name__ == '__main__':
     print(encoded_image.shape)
     decoded_output = decoder((encoded_image, skip_outputs))
     print(decoded_output.shape)
+
+    # see train.py for use
