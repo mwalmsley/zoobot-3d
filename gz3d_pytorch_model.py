@@ -175,10 +175,13 @@ class ZooBot3D(define_model.GenericLightningModule):
         )
 
         # B1HW shape
-        has_spiral_label = torch.amax(outputs['spiral_mask'], dim=(1, 2, 3)) > 0
+        has_spiral_mask = torch.amax(outputs['spiral_mask'], dim=(1, 2, 3)) > 0
+        if torch.sum(has_spiral_mask) == 0:
+            # logging.warning('No spiral masks in batch')
+            return
 
         predicted_spiral_maps_image = wandb.Image(
-            torchvision.utils.make_grid(outputs['predicted_maps'][has_spiral_label][:max_images, 0:1]),
+            torchvision.utils.make_grid(outputs['predicted_maps'][has_spiral_mask][:max_images, 0:1]),
         )    
         self.trainer.logger.experiment.log(
             {f"{step_name}/predicted_spiral_mask": predicted_spiral_maps_image},
@@ -186,7 +189,7 @@ class ZooBot3D(define_model.GenericLightningModule):
         )
 
         true_spiral_maps_image = wandb.Image(
-            torchvision.utils.make_grid(outputs['spiral_mask'][has_spiral_label][:max_images, 0:1]),
+            torchvision.utils.make_grid(outputs['spiral_mask'][has_spiral_mask][:max_images, 0:1]),
         )    
         self.trainer.logger.experiment.log(
             {f"{step_name}/true_spiral_mask": true_spiral_maps_image},
