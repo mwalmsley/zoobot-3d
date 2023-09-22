@@ -102,7 +102,7 @@ def main():
         max_epochs = 1000
         patience = 5
         image_size = 224
-        batch_size = 512  # 2xA100 at mixed precision
+        batch_size = 256  # 2xA100 at mixed precision
         num_workers = 12
         accelerator = 'gpu'
         devices = 2
@@ -145,8 +145,8 @@ def main():
 
     # df['relative_desi_jpg_loc'] = df['relative_desi_jpg_loc'].astype(str)
     df['desi_jpg_loc'] = df.apply(lambda x: get_jpg_loc(x, base_dir), axis=1)
-    print(df['relative_desi_jpg_loc'].sample(5))
-    print(df['desi_jpg_loc'].sample(5))
+    # print(df['relative_desi_jpg_loc'].sample(5))
+    # print(df['desi_jpg_loc'].sample(5))
 
     logging.info(df['spiral_mask_loc'].iloc[0])
 
