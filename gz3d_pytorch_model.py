@@ -116,34 +116,15 @@ class ZooBot3D(define_model.GenericLightningModule):
         # self.loss_func returns shape of (galaxy, question), mean to ()
         multiq_loss = self.dirichlet_loss(pred_labels, batch['label_cols'], sum_over_questions=False)
 
-        # spiral_seg_loss = self.seg_loss(batch.get('spiral_mask', torch.zeros((self.input_size, self.input_size)), pred_maps[:, 0:1, :, :], reduction='none')
-        # bar_seg_loss = self.seg_loss(batch['bar_mask'], pred_maps[:, 1:2, :, :], reduction='none')
-        # seg_loss = spiral_seg_loss + bar_seg_loss
-
-        # TEMP - hardcoded order of seg maps
-        # seg_maps = torch.concat(
-        #     [
-        #         batch.get('spiral_mask', torch.zeros((1, self.input_size, self.input_size))),
-        #         batch.get('bar_mask', torch.zeros((1, self.input_size, self.input_size)))
-        #     ],
-        #     dim=1
-        # )
-        # seg_maps = torch.concat([seg_map for seg_map_name, seg_map in batch.items() if 'mask' in seg_map_name], dim=1)
-
         # we will always have 'spiral' and 'bar_mask' batch keys, else batch elements wouldn't be stackable
         seg_maps = torch.concat([batch['spiral_mask'], batch['bar_mask']], dim=1)
         # each seg map, if in the batch dict, is called e.g. spiral_mask, bar_mask, etc
         # masks are input as (batch, 1, 128, 128), where 1st dim is (dummy) channel
         # concat as (batch, map_index, 128, 128), where 1st dim is now map index
 
-
-
         seg_loss = self.seg_loss(seg_maps, pred_maps, reduction='none')  # shape (batch, map_index, 128, 128)]
-
         # set nan where seg map max is 0 i.e. no seg labels
         # missing_maps is shape (batch, 2). True where segmap missing
-        # TODO can't max do max over several axis?
-        # missing_maps = torch.max(seg_maps.reshape(-1, 2, self.input_size * self.input_size), dim=2) == 0xw
         missing_maps = torch.amax(seg_maps, dim=(2, 3)) == 0
         seg_loss[missing_maps] = torch.nan
 

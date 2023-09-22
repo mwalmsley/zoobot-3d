@@ -116,6 +116,8 @@ def main():
         torch.set_float32_matmul_precision('medium')
 
     seg_loss_weighting = 100
+    # loss_to_monitor = 'validation/epoch_total_loss:0'
+    loss_to_monitor = 'validation/epoch_seg_loss:0'
     
 
  
@@ -132,7 +134,8 @@ def main():
         'devices': devices,
         'precision': precision,
         'strategy': strategy,
-        'gz3d_galaxies_only': gz3d_galaxies_only
+        'gz3d_galaxies_only': gz3d_galaxies_only,
+        'loss_to_monitor': loss_to_monitor
     }
     wandb_logger = WandbLogger(project='zoobot-3d', log_model=False, config=config)
     wandb.init(project='merger', config=config)  # args will be ignored by existing logger
@@ -193,12 +196,9 @@ def main():
     )
     datamodule.setup('fit')
 
-    # or for seg loss specifically:
-    # validation/epoch_seg_loss:0 
-
     callbacks = [
-        EarlyStopping(monitor='validation/epoch_total_loss:0', patience=wandb_config.patience),
-        ModelCheckpoint(dirpath=args.save_dir, monitor='validation/epoch_total_loss:0')
+        EarlyStopping(monitor=wandb_config.loss_to_monitor, patience=wandb_config.patience),
+        ModelCheckpoint(dirpath=args.save_dir, monitor=wandb_config.loss_to_monitor)
     ]
 
     trainer = pl.Trainer(
