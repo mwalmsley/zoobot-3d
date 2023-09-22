@@ -66,6 +66,9 @@ class SegmentationGalaxyDataset(galaxy_dataset.GalaxyDataset):
                 transformed = self.transform(image=image, **segmap_dict)
             except Exception as e:
                 logging.critical('Cannot transform {}, {}, {}'.format(image_loc, spiral_mask_loc, bar_mask_loc))
+                logging.critical(image.shape)
+                logging.critical(segmap_dict['spiral_mask'].shape)
+                logging.critical(segmap_dict['bar_mask'].shape)
                 raise e
             
             image = transformed['image']
