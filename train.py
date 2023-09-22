@@ -93,6 +93,7 @@ def main():
         log_every_n_steps = 10
     else:
         max_galaxies = None
+        max_epochs = 1000
         image_size = 224
         seg_loss_weighting = 100
         batch_size = 128
