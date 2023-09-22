@@ -103,7 +103,7 @@ def main():
         max_epochs = 1000
         patience = 5
         image_size = 224
-        batch_size = 512  # 2xA100 at mixed precision
+        batch_size = 256  # 2xA100 at mixed precision
         num_workers = 12
         accelerator = 'gpu'
         devices = 2
