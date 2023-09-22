@@ -144,8 +144,10 @@ def main():
     df['spiral_mask_loc'] = df['relative_spiral_mask_loc'].astype(str).apply(lambda x: base_dir + x)
     df['bar_mask_loc'] = df['relative_bar_mask_loc'].astype(str).apply(lambda x: base_dir + x)
 
-    df['relative_desi_jpg_loc'] = df['relative_desi_jpg_loc'].astype(str)
+    # df['relative_desi_jpg_loc'] = df['relative_desi_jpg_loc'].astype(str)
     df['desi_jpg_loc'] = df.apply(lambda x: get_jpg_loc(x, base_dir), axis=1)
+    print(df['relative_desi_jpg_loc'].sample(5))
+    print(df['desi_jpg_loc'].sample(5))
 
     logging.info(df['spiral_mask_loc'].iloc[0])
 
@@ -210,7 +212,7 @@ def main():
     # trainer.test(model, datamodule)
 
 def get_jpg_loc(row, base_dir):
-    if row['relative_desi_jpg_loc'] == '':
+    if row['relative_desi_jpg_loc'] == None:
         return row['galahad_jpg_loc']
     else:
         return base_dir + row['relative_desi_jpg_loc']
