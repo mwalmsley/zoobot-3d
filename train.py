@@ -85,6 +85,7 @@ def main():
     debug = args.debug
     if debug or on_local:
         max_galaxies = 500
+        gz3d_galaxies_only = True
         max_epochs = 2
         patience = 2
         image_size = 128
@@ -94,8 +95,11 @@ def main():
         precision = '32-true'
         log_every_n_steps = 10
         devices = 'auto'
+        
+
     else:
         max_galaxies = None
+        gz3d_galaxies_only = False
         max_epochs = 1000
         patience = 5
         image_size = 224
@@ -108,7 +112,7 @@ def main():
         torch.set_float32_matmul_precision('medium')
 
     seg_loss_weighting = 100
-
+    
 
  
     config = {
@@ -122,30 +126,34 @@ def main():
         'num_workers': num_workers,
         'accelerator': accelerator,
         'devices': devices,
-        'precision': precision
+        'precision': precision,
+        'gz3d_galaxies_only': gz3d_galaxies_only
     }
     wandb_logger = WandbLogger(project='zoobot-3d', log_model=False, config=config)
     wandb.init(project='merger', config=config)  # args will be ignored by existing logger
     wandb_config = wandb.config
 
-    df = pd.read_csv(base_dir + 'data/gz3d_and_gz_desi_master_catalog.csv')
+    df = pd.read_parquet(base_dir + 'data/gz3d_and_gz_desi_master_catalog.parquet')
     df = df[df['smooth-or-featured_featured-or-disk_fraction'] > 0.5]
     df = df[df['disk-edge-on_yes_fraction'] < 0.5]
     df = df[df['has-spiral-arms_yes_fraction'] > 0.5]
 
-    logging.info(df['local_spiral_mask_loc'].iloc[0])
+    logging.info(df['relative_spiral_mask_loc'].iloc[0])
 
     # adjust paths for base_dir
-    df['local_spiral_mask_loc'] = df['local_spiral_mask_loc'].apply(lambda x: base_dir + x)
-    df['local_bar_mask_loc'] = df['local_bar_mask_loc'].apply(lambda x: base_dir + x)
-    df['local_desi_jpg_loc'] = df['local_desi_jpg_loc'].apply(lambda x: base_dir + x)
+    df['spiral_mask_loc'] = df['relative_spiral_mask_loc'].astype(str).apply(lambda x: base_dir + x)
+    df['bar_mask_loc'] = df['relative_bar_mask_loc'].astype(str).apply(lambda x: base_dir + x)
 
-    logging.info(df['local_spiral_mask_loc'].iloc[0])
+    df['relative_desi_jpg_loc'] = df['relative_desi_jpg_loc'].astype(str)
+    df['desi_jpg_loc'] = df.apply(lambda x: get_jpg_loc(x, base_dir), axis=1)
 
-    df['spiral_mask_exists'] = df['local_spiral_mask_loc'].apply(os.path.isfile)
+    logging.info(df['spiral_mask_loc'].iloc[0])
 
-    # df = df.query('spiral_mask_exists')
-    assert len(df) > 0, df['local_desi_jpg_loc'].iloc[0]
+    if wandb_config.gz3d_galaxies_only:
+        df['spiral_mask_exists'] = df['spiral_mask_loc'].apply(os.path.isfile)
+        df = df.query('spiral_mask_exists')
+        assert len(df) > 0
+
     logging.info(f'Galaxies in catalog: {len(df)}')
 
     if wandb_config.max_galaxies is not None:
@@ -200,6 +208,12 @@ def main():
     trainer.fit(model, datamodule)
 
     # trainer.test(model, datamodule)
+
+def get_jpg_loc(row, base_dir):
+    if row['relative_desi_jpg_loc'] == '':
+        return row['galahad_jpg_loc']
+    else:
+        return base_dir + row['relative_desi_jpg_loc']
 
 
 if __name__ == '__main__':

@@ -26,7 +26,7 @@ class SegmentationGalaxyDataset(galaxy_dataset.GalaxyDataset):
         galaxy = self.catalog.iloc[index]
 
         # load the image into memory
-        image_loc = galaxy['local_desi_jpg_loc']
+        image_loc = galaxy['desi_jpg_loc']
         try:
             image = load_image(image_loc, greyscale=False)
             # HWC PIL image, 0-255 uint8
@@ -43,7 +43,7 @@ class SegmentationGalaxyDataset(galaxy_dataset.GalaxyDataset):
         #         segmap_dict[segmap_name] = segmap_image
         # or static mode
         segmap_dict = {}
-        spiral_mask_loc = galaxy['local_spiral_mask_loc']
+        spiral_mask_loc = galaxy['spiral_mask_loc']
         if os.path.isfile(spiral_mask_loc):
             # cv2 greyscale loads as HW, expand to HW1 (where 1 is channels)
             segmap_dict['spiral_mask'] = np.expand_dims(load_image(spiral_mask_loc, greyscale=True), 2)
@@ -51,7 +51,7 @@ class SegmentationGalaxyDataset(galaxy_dataset.GalaxyDataset):
         else:
             # need to always return something so that batch elements will be stackable
             segmap_dict['spiral_mask'] = np.zeros((image.shape[0], image.shape[1], 1)).astype(np.uint8)
-        bar_mask_loc = galaxy['local_bar_mask_loc']
+        bar_mask_loc = galaxy['bar_mask_loc']
         if os.path.isfile(bar_mask_loc):
             segmap_dict['bar_mask'] = np.expand_dims(load_image(bar_mask_loc, greyscale=True), 2)
             # assert segmap_dict['bar_mask'].shape == (image.shape[0], image.shape[1], 1), segmap_dict['bar_mask'].shape
@@ -99,9 +99,9 @@ if __name__ == '__main__':
         
         df = pd.read_csv('/Users/user/repos/zoobot-3d/data/gz3d_and_gz_desi_matches.csv')
 
-        # temp, until I update master df
-        df['segmap_json_loc'] = df['local_gz3d_fits_loc'].str.replace('/fits_gz/', '/segmaps/', regex=False).str.replace('.fits.gz', '.json', regex=False)
-        df['local_desi_jpg_loc'] = df.apply(lambda x: f'data/desi/jpg/{x["brickid"]}/{x["brickid"]}_{x["objid"]}.jpg', axis=1)
+        
+        # df['desi_jpg_loc'] = df.apply(lambda x: f'data/desi/jpg/{x["brickid"]}/{x["brickid"]}_{x["objid"]}.jpg', axis=1)
+        df['desi_jpg_loc'] = '/Users/user/repos/zoobot-3d/' + df['relative_desi_jpg_loc']
 
         galaxy = df.iloc[32]
 
@@ -111,7 +111,7 @@ if __name__ == '__main__':
         # spiral_marks = segmaps['spiral']
         # mask_im = construct_segmap_image(galaxy, spiral_marks)
 
-        # desi_im = Image.open(galaxy['local_desi_jpg_loc'])
+        # desi_im = Image.open(galaxy['desi_jpg_loc'])
 
         # fig, ax = plt.subplots()
         # ax.imshow(desi_im, alpha=.5)
