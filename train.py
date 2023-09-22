@@ -86,6 +86,7 @@ def main():
     if debug or on_local:
         max_galaxies = 500
         gz3d_galaxies_only = True
+        spiral_galaxies_only = True
         max_epochs = 2
         patience = 2
         image_size = 128
@@ -96,10 +97,10 @@ def main():
         log_every_n_steps = 10
         devices = 'auto'
         strategy = 'auto'
-
     else:
         max_galaxies = None
         gz3d_galaxies_only = False
+        spiral_galaxies_only = False
         log_every_n_steps = 100
         # gz3d_galaxies_only = True
         # log_every_n_steps = 9
@@ -135,6 +136,7 @@ def main():
         'precision': precision,
         'strategy': strategy,
         'gz3d_galaxies_only': gz3d_galaxies_only,
+        'spiral_galaxies_only': spiral_galaxies_only,
         'loss_to_monitor': loss_to_monitor
     }
     wandb_logger = WandbLogger(project='zoobot-3d', log_model=False, config=config)
@@ -142,9 +144,10 @@ def main():
     wandb_config = wandb.config
 
     df = pd.read_parquet(base_dir + 'data/gz3d_and_gz_desi_master_catalog.parquet')
-    df = df[df['smooth-or-featured_featured-or-disk_fraction'] > 0.5]
-    df = df[df['disk-edge-on_yes_fraction'] < 0.5]
-    df = df[df['has-spiral-arms_yes_fraction'] > 0.5]
+    if wandb_config.spiral_galaxies_only:
+        df = df[df['smooth-or-featured_featured-or-disk_fraction'] > 0.5]
+        df = df[df['disk-edge-on_yes_fraction'] < 0.5]
+        df = df[df['has-spiral-arms_yes_fraction'] > 0.5]
 
     logging.info(df['relative_spiral_mask_loc'].iloc[0])
 
