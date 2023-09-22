@@ -174,19 +174,31 @@ class ZooBot3D(define_model.GenericLightningModule):
             self.log(f'{prefix}/epoch_seg_maps/seg_map_{seg_map_class_index}_loss:0', torch.nanmean(seg_loss[:, seg_map_class_index, :, :]), on_epoch=True, on_step=False, sync_dist=True)
 
     def log_outputs(self, outputs, step_name):
+        # skip once happy, can slow down training
         # pass
-        # TODO upload example segmaps etc if needed
-        predicted_spiral_maps_image = wandb.Image(
-            torchvision.utils.make_grid(outputs['predicted_maps'][:3, 0:1]),
-            caption='predicted spiral maps'
-        )    
-        wandb.log({"predicted_maps_spiral": predicted_spiral_maps_image})
-
+        
         galaxy_image = wandb.Image(
             torchvision.utils.make_grid(outputs['image'][:3]),
             caption='galaxy image'
         )    
-        wandb.log({"galaxy_image": galaxy_image})
+        wandb.log({f"{step_name}/galaxy_image": galaxy_image})
+
+        # B1HW shape
+        has_spiral_label = torch.amax(outputs['spiral_mask'], dim=(1, 2, 3)) > 0
+
+        predicted_spiral_maps_image = wandb.Image(
+            torchvision.utils.make_grid(outputs['predicted_maps'][has_spiral_label][:3, 0:1]),
+            caption='predicted spiral mask'
+        )    
+        wandb.log({f"{step_name}/predicted_spiral_mask": predicted_spiral_maps_image})
+
+
+        true_spiral_maps_image = wandb.Image(
+            torchvision.utils.make_grid(outputs['spiral_mask'][has_spiral_label][:3, 0:1]),
+            caption='true spiral mask'
+        )    
+        wandb.log({f"{step_name}/true_spiral_mask": true_spiral_maps_image})
+
 
 # Standalone encoder class: return both the encoder output and the skip connections, include midblocks
 class pytorch_encoder_module(nn.Module):

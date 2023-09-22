@@ -7,6 +7,7 @@ import torch
 import pandas as pd
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from sklearn.model_selection import train_test_split
 import wandb
 import albumentations as A
@@ -85,8 +86,8 @@ def main():
     if debug or on_local:
         max_galaxies = 500
         max_epochs = 2
+        patience = 2
         image_size = 128
-        seg_loss_weighting = 100
         batch_size = 32
         num_workers = 1
         accelerator = 'cpu'
@@ -96,20 +97,24 @@ def main():
     else:
         max_galaxies = None
         max_epochs = 1000
+        patience = 5
         image_size = 224
-        seg_loss_weighting = 100
         batch_size = 128
         num_workers = 12
         accelerator = 'gpu'
         devices = 2
         precision = '16-mixed'
-        log_every_n_steps = 50
+        log_every_n_steps = 100
         torch.set_float32_matmul_precision('medium')
+
+    seg_loss_weighting = 100
+
 
  
     config = {
         'debug': debug,
         'max_epochs': max_epochs,
+        'patience': patience,
         'image_size': image_size,
         'seg_loss_weighting': seg_loss_weighting,
         'max_galaxies': max_galaxies,
@@ -138,15 +143,15 @@ def main():
     logging.info(df['local_spiral_mask_loc'].iloc[0])
 
     df['spiral_mask_exists'] = df['local_spiral_mask_loc'].apply(os.path.isfile)
-    df = df.query('spiral_mask_exists')
-    assert len(df) > 0, df['local_spiral_mask_loc'].iloc[0]
-    print(len(df))
-    # exit()
+
+    # df = df.query('spiral_mask_exists')
+    assert len(df) > 0, df['local_desi_jpg_loc'].iloc[0]
+    logging.info(f'Galaxies in catalog: {len(df)}')
 
     if wandb_config.max_galaxies is not None:
         df = df[:max_galaxies]
+        logging.info(f'Galaxies after cut: {len(df)}')
 
-    # wandb.log({'n_galaxies': len(df)})
     
     train_catalog, hidden_catalog = train_test_split(df, test_size=0.3, random_state=args.random_state)
     val_catalog, test_catalog = train_test_split(hidden_catalog, test_size=0.2/0.3, random_state=args.random_state)
@@ -173,6 +178,14 @@ def main():
     )
     datamodule.setup('fit')
 
+    # or for seg loss specifically:
+    # validation/epoch_seg_loss:0 
+    
+    callbacks = [
+        EarlyStopping(monitor='validation/epoch_loss', patience=wandb_config.patience),
+        ModelCheckpoint(dirpath=args.save_dir, monitor='validation/epoch_loss')
+    ]
+
     trainer = pl.Trainer(
         accelerator=wandb_config.accelerator,
         devices=wandb_config.devices,
@@ -180,7 +193,8 @@ def main():
         precision=wandb_config.precision,
         logger=wandb_logger,
         log_every_n_steps=log_every_n_steps,
-        strategy='auto'
+        strategy='auto',
+        callbacks=callbacks
     )
 
     trainer.fit(model, datamodule)
