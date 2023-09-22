@@ -99,7 +99,10 @@ def main():
 
     else:
         max_galaxies = None
+        # gz3d_galaxies_only = False
+        # log_every_n_steps = 100
         gz3d_galaxies_only = True
+        log_every_n_steps = 9
         max_epochs = 1000
         patience = 5
         image_size = 224
@@ -108,7 +111,7 @@ def main():
         accelerator = 'gpu'
         devices = 2
         precision = '16-mixed'
-        log_every_n_steps = 100
+        
         strategy = 'ddp'
         torch.set_float32_matmul_precision('medium')
 
@@ -194,8 +197,8 @@ def main():
     # validation/epoch_seg_loss:0 
 
     callbacks = [
-        EarlyStopping(monitor='validation//epoch_total_loss:0', patience=wandb_config.patience),
-        ModelCheckpoint(dirpath=args.save_dir, monitor='validation//epoch_total_loss:0')
+        EarlyStopping(monitor='validation/epoch_total_loss:0', patience=wandb_config.patience),
+        ModelCheckpoint(dirpath=args.save_dir, monitor='validation/epoch_total_loss:0')
     ]
 
     trainer = pl.Trainer(
