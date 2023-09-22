@@ -98,6 +98,7 @@ def main():
         batch_size = 128
         num_workers = 12
         accelerator = 'gpu'
+        devices = 2
         precision = '16'
         log_every_n_steps = 50
 
@@ -111,6 +112,7 @@ def main():
         'batch_size': batch_size,
         'num_workers': num_workers,
         'accelerator': accelerator,
+        'devices': devices,
         'precision': precision
     }
     wandb_logger = WandbLogger(project='zoobot-3d', log_model=False, config=config)
@@ -169,6 +171,7 @@ def main():
 
     trainer = pl.Trainer(
         accelerator=wandb_config.accelerator,
+        devices=wandb_config.devices,
         max_epochs=wandb_config.max_epochs,
         precision=wandb_config.precision,
         logger=wandb_logger,

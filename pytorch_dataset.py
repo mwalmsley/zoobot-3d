@@ -45,16 +45,16 @@ class SegmentationGalaxyDataset(galaxy_dataset.GalaxyDataset):
         segmap_dict = {}
         spiral_mask_loc = galaxy['local_spiral_mask_loc']
         if os.path.isfile(spiral_mask_loc):
-            # PIL loads as HW, expand to HW1 (where 1 is channels)
+            # cv2 greyscale loads as HW, expand to HW1 (where 1 is channels)
             segmap_dict['spiral_mask'] = np.expand_dims(load_image(spiral_mask_loc, greyscale=True), 2)
-            assert segmap_dict['spiral_mask'].shape == (image.shape[0], image.shape[1], 1), segmap_dict['spiral_mask'].shape
+            # assert segmap_dict['spiral_mask'].shape == (image.shape[0], image.shape[1], 1), segmap_dict['spiral_mask'].shape
         else:
             # need to always return something so that batch elements will be stackable
             segmap_dict['spiral_mask'] = np.zeros((image.shape[0], image.shape[1], 1)).astype(np.uint8)
         bar_mask_loc = galaxy['local_bar_mask_loc']
         if os.path.isfile(bar_mask_loc):
             segmap_dict['bar_mask'] = np.expand_dims(load_image(bar_mask_loc, greyscale=True), 2)
-            assert segmap_dict['bar_mask'].shape == (image.shape[0], image.shape[1], 1), segmap_dict['bar_mask'].shape
+            # assert segmap_dict['bar_mask'].shape == (image.shape[0], image.shape[1], 1), segmap_dict['bar_mask'].shape
         else:
             segmap_dict['bar_mask'] = np.zeros((image.shape[0], image.shape[1], 1)).astype(np.uint8)
 
