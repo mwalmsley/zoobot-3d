@@ -99,10 +99,10 @@ def main():
 
     else:
         max_galaxies = None
-        # gz3d_galaxies_only = False
-        # log_every_n_steps = 100
-        gz3d_galaxies_only = True
-        log_every_n_steps = 9
+        gz3d_galaxies_only = False
+        log_every_n_steps = 100
+        # gz3d_galaxies_only = True
+        # log_every_n_steps = 9
         max_epochs = 1000
         patience = 5
         image_size = 224
