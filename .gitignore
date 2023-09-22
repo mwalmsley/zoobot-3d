@@ -170,3 +170,7 @@ cython_debug/
 *temp*
 *.json
 *.jpg
+
+lighting_dir
+wandb
+results/models

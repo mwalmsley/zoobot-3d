@@ -53,6 +53,7 @@ class SegmentationGalaxyDataset(galaxy_dataset.GalaxyDataset):
             segmap_dict['spiral_mask'] = np.expand_dims(np.array(galaxy_dataset.load_img_file(spiral_mask_loc)), 2)
             # print(segmap_dict['spiral_mask'].shape)
         else:
+            # need to always return something so that batch elements will be stackable
             segmap_dict['spiral_mask'] = np.zeros((424, 424, 1)).astype(np.uint8)
         bar_mask_loc = galaxy['local_bar_mask_loc']
         if os.path.isfile(bar_mask_loc):

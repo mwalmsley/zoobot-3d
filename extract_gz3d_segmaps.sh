@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=ex-seg
 #SBATCH --output=%x_%A_%a.log                                 # "reserve all the available memory on each node assigned to the job"
-#SBATCH --no-requeue                                    # Do not resubmit a failed job
+#SBATCH --no-requeue                                    # Do not resubmit a failed jobt
 #SBATCH --time=72:00:00       
 
 #SBATCH --mem=10GB

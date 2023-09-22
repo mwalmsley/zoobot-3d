@@ -10,6 +10,7 @@ class SegmentationDataModule(pl.LightningDataModule):
             train_catalog: pd.DataFrame,
             val_catalog: pd.DataFrame,
             test_catalog=None,
+            predict_catalog=None,
             label_cols=None,
             transform=None,
             batch_size: int=32,
@@ -21,6 +22,7 @@ class SegmentationDataModule(pl.LightningDataModule):
         self.train_catalog = train_catalog
         self.val_catalog = val_catalog
         self.test_catalog = test_catalog
+        self.predict_catalog = predict_catalog
         self.label_cols = label_cols
         self.transform = transform
         self.batch_size = batch_size
@@ -41,13 +43,22 @@ class SegmentationDataModule(pl.LightningDataModule):
                 transform=self.transform
             )
         # Assign test dataset for use in dataloader(s)
-        if stage == "test":
+        elif stage == "test":
             assert self.test_catalog is not None
             self.test_dataset = pytorch_dataset.SegmentationGalaxyDataset(
                 catalog=self.test_catalog,
+                label_cols=self.label_cols,
+                transform=self.transform
+            )
+        elif stage == "predict":
+            assert self.predict_catalog is not None
+            self.predict_dataset = pytorch_dataset.SegmentationGalaxyDataset(
+                catalog=self.predict_catalog,
                 label_cols=None,
                 transform=self.transform
             )
+
+
 
         
     def train_dataloader(self):
@@ -57,10 +68,10 @@ class SegmentationDataModule(pl.LightningDataModule):
         return DataLoader(self.val_dataset, batch_size=self.batch_size, num_workers=self.num_workers, prefetch_factor=self.prefetch_factor)
 
     def test_dataloader(self):
-        return DataLoader(self.mnist_test, batch_size=self.batch_size, num_workers=self.num_workers, prefetch_factor=self.prefetch_factor)
+        return DataLoader(self.test_dataset, batch_size=self.batch_size, num_workers=self.num_workers, prefetch_factor=self.prefetch_factor)
 
     def predict_dataloader(self):
-        return DataLoader(self.mnist_predict, batch_size=self.batch_size, num_workers=self.num_workers, prefetch_factor=self.prefetch_factor)
+        return DataLoader(self.predict_dataset, batch_size=self.batch_size, num_workers=self.num_workers, prefetch_factor=self.prefetch_factor)
 
 # def collate_segmaps(batch):
 
