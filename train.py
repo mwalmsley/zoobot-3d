@@ -3,6 +3,7 @@ import os
 import logging
 import argparse
 
+import torch
 import pandas as pd
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
@@ -100,8 +101,9 @@ def main():
         num_workers = 12
         accelerator = 'gpu'
         devices = 2
-        precision = '16'
+        precision = '16-mixed'
         log_every_n_steps = 50
+        torch.set_float32_matmul_precision('medium')
 
  
     config = {
