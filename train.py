@@ -73,7 +73,7 @@ def main():
     parser.add_argument('--seed', dest='random_state', default=42, type=int)
     args = parser.parse_args()
 
-    pl.seed_everything(args.seed)
+    pl.seed_everything(args.random_state)
 
     on_local = os.path.isdir('/Users/user/')
     if on_local:
@@ -131,8 +131,8 @@ def main():
 
     # wandb.log({'n_galaxies': len(df)})
     
-    train_catalog, hidden_catalog = train_test_split(df, test_size=0.3, random_state=42)
-    val_catalog, test_catalog = train_test_split(hidden_catalog, test_size=0.2/0.3, random_state=42)
+    train_catalog, hidden_catalog = train_test_split(df, test_size=0.3, random_state=args.random_state)
+    val_catalog, test_catalog = train_test_split(hidden_catalog, test_size=0.2/0.3, random_state=args.random_state)
 
     schema = decals_all_campaigns_ortho_schema
 
