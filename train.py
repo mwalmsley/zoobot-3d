@@ -122,9 +122,21 @@ def main():
     df = df[df['smooth-or-featured_featured-or-disk_fraction'] > 0.5]
     df = df[df['disk-edge-on_yes_fraction'] < 0.5]
     df = df[df['has-spiral-arms_yes_fraction'] > 0.5]
+
+    logging.info(df['local_spiral_mask_loc'].iloc[0])
+
+    # adjust paths for base_dir
+    df['local_spiral_mask_loc'] = df['local_spiral_mask_loc'].apply(lambda x: base_dir + x)
+    df['local_bar_mask_loc'] = df['local_bar_mask_loc'].apply(lambda x: base_dir + x)
+    df['local_desi_jpg_loc'] = df['local_desi_jpg_loc'].apply(lambda x: base_dir + x)
+
+    logging.info(df['local_spiral_mask_loc'].iloc[0])
+
     df['spiral_mask_exists'] = df['local_spiral_mask_loc'].apply(os.path.isfile)
     df = df.query('spiral_mask_exists')
+    assert len(df) > 0, df['local_spiral_mask_loc'].iloc[0]
     print(len(df))
+    # exit()
 
     if wandb_config.max_galaxies is not None:
         df = df[:max_galaxies]
