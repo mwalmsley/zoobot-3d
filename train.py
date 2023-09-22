@@ -3,7 +3,6 @@ import os
 import logging
 import argparse
 
-import matplotlib.pyplot as plt
 import pandas as pd
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger

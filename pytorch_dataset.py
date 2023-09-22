@@ -54,15 +54,20 @@ class SegmentationGalaxyDataset(galaxy_dataset.GalaxyDataset):
             # print(segmap_dict['spiral_mask'].shape)
         else:
             # need to always return something so that batch elements will be stackable
-            segmap_dict['spiral_mask'] = np.zeros((424, 424, 1)).astype(np.uint8)
+            segmap_dict['spiral_mask'] = np.zeros((image.shape[0], image.shape[1], 1)).astype(np.uint8)
         bar_mask_loc = galaxy['local_bar_mask_loc']
         if os.path.isfile(bar_mask_loc):
             segmap_dict['bar_mask'] = np.expand_dims(np.array(galaxy_dataset.load_img_file(bar_mask_loc)), 2)
         else:
-            segmap_dict['bar_mask'] = np.zeros((424, 424, 1)).astype(np.uint8)
+            segmap_dict['bar_mask'] = np.zeros((image.shape[0], image.shape[1], 1)).astype(np.uint8)
 
         if self.transform:
-            transformed = self.transform(image=image, **segmap_dict)
+            try:
+                transformed = self.transform(image=image, **segmap_dict)
+            except Exception as e:
+                logging.critical('Cannot transform {}, {}, {}'.format(image_loc, spiral_mask_loc, bar_mask_loc))
+                raise e
+            
             image = transformed['image']
             # everything else is the transformed segmap dict
             del transformed['image']
