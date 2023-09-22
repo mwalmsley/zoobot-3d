@@ -95,6 +95,7 @@ def main():
         precision = '32-true'
         log_every_n_steps = 10
         devices = 'auto'
+        strategy = 'auto'
 
     else:
         max_galaxies = None
@@ -102,12 +103,13 @@ def main():
         max_epochs = 1000
         patience = 5
         image_size = 224
-        batch_size = 256  # 2xA100 at mixed precision
+        batch_size = 512  # 2xA100 at mixed precision
         num_workers = 12
         accelerator = 'gpu'
         devices = 2
         precision = '16-mixed'
         log_every_n_steps = 100
+        strategy = 'ddp'
         torch.set_float32_matmul_precision('medium')
 
     seg_loss_weighting = 100
@@ -126,6 +128,7 @@ def main():
         'accelerator': accelerator,
         'devices': devices,
         'precision': precision,
+        'strategy': strategy,
         'gz3d_galaxies_only': gz3d_galaxies_only
     }
     wandb_logger = WandbLogger(project='zoobot-3d', log_model=False, config=config)
@@ -202,7 +205,7 @@ def main():
         precision=wandb_config.precision,
         logger=wandb_logger,
         log_every_n_steps=log_every_n_steps,
-        strategy='auto',
+        strategy=wandb_config.strategy,
         callbacks=callbacks
     )
 
