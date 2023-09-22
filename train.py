@@ -95,15 +95,14 @@ def main():
         precision = '32-true'
         log_every_n_steps = 10
         devices = 'auto'
-        
 
     else:
         max_galaxies = None
-        gz3d_galaxies_only = False
+        gz3d_galaxies_only = True
         max_epochs = 1000
         patience = 5
         image_size = 224
-        batch_size = 128
+        batch_size = 512  # 2xA100 at mixed precision
         num_workers = 12
         accelerator = 'gpu'
         devices = 2
@@ -192,8 +191,8 @@ def main():
     # validation/epoch_seg_loss:0 
 
     callbacks = [
-        EarlyStopping(monitor='validation/epoch_loss:0', patience=wandb_config.patience),
-        ModelCheckpoint(dirpath=args.save_dir, monitor='validation/epoch_loss:0')
+        EarlyStopping(monitor='validation//epoch_total_loss:0', patience=wandb_config.patience),
+        ModelCheckpoint(dirpath=args.save_dir, monitor='validation//epoch_total_loss:0')
     ]
 
     trainer = pl.Trainer(

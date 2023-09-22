@@ -156,11 +156,14 @@ class ZooBot3D(define_model.GenericLightningModule):
         # so this will be the global per-example mean
         # TODO Dirichlet loss is trivially 0 for galaxies with no labels, which may add weighting problems
         multiq_loss_reduced = torch.mean(multiq_loss)
-        self.log(f'{step_name}/epoch_loss:0', multiq_loss_reduced, on_epoch=True, on_step=False, sync_dist=True)
+        self.log(f'{step_name}/epoch_vote_loss:0', multiq_loss_reduced, on_epoch=True, on_step=False, sync_dist=True)
 
         seg_loss_reduced = torch.nanmean(seg_loss)
         self.log(f'{step_name}/epoch_seg_loss:0', seg_loss_reduced, on_epoch=True, on_step=False, sync_dist=True)
+
         loss = multiq_loss_reduced + self.seg_loss_weighting * seg_loss_reduced
+        self.log(f'{step_name}/epoch_total_loss:0', loss, on_epoch=True, on_step=False, sync_dist=True)
+
         return loss
         
     def log_loss_per_question(self, multiq_loss, prefix):
@@ -177,27 +180,37 @@ class ZooBot3D(define_model.GenericLightningModule):
         # skip once happy, can slow down training
         # pass
         
+        max_images = 5
+
         galaxy_image = wandb.Image(
-            torchvision.utils.make_grid(outputs['image'][:3]),
+            torchvision.utils.make_grid(outputs['image'][:max_images]),
             caption='galaxy image'
-        )    
-        wandb.log({f"{step_name}/galaxy_image": galaxy_image})
+        )   
+        # https://docs.wandb.ai/guides/integrations/lightning#log-images-text-and-more
+        # https://github.com/Lightning-AI/lightning/discussions/6723 
+        self.trainer.logger.experiment.log(
+            {f"{step_name}/galaxy_image": galaxy_image},
+            step=self.global_step
+        )
 
         # B1HW shape
         has_spiral_label = torch.amax(outputs['spiral_mask'], dim=(1, 2, 3)) > 0
 
         predicted_spiral_maps_image = wandb.Image(
-            torchvision.utils.make_grid(outputs['predicted_maps'][has_spiral_label][:3, 0:1]),
-            caption='predicted spiral mask'
+            torchvision.utils.make_grid(outputs['predicted_maps'][has_spiral_label][:max_images, 0:1]),
         )    
-        wandb.log({f"{step_name}/predicted_spiral_mask": predicted_spiral_maps_image})
-
+        self.trainer.logger.experiment.log(
+            {f"{step_name}/predicted_spiral_mask": predicted_spiral_maps_image},
+            step=self.global_step
+        )
 
         true_spiral_maps_image = wandb.Image(
-            torchvision.utils.make_grid(outputs['spiral_mask'][has_spiral_label][:3, 0:1]),
-            caption='true spiral mask'
+            torchvision.utils.make_grid(outputs['spiral_mask'][has_spiral_label][:max_images, 0:1]),
         )    
-        wandb.log({f"{step_name}/true_spiral_mask": true_spiral_maps_image})
+        self.trainer.logger.experiment.log(
+            {f"{step_name}/true_spiral_mask": true_spiral_maps_image},
+            step=self.global_step
+        )
 
 
 # Standalone encoder class: return both the encoder output and the skip connections, include midblocks
