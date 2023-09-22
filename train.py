@@ -100,7 +100,8 @@ def main():
     else:
         max_galaxies = None
         gz3d_galaxies_only = False
-        spiral_galaxies_only = False
+        # spiral_galaxies_only = False
+        spiral_galaxies_only = True
         log_every_n_steps = 100
         # gz3d_galaxies_only = True
         # log_every_n_steps = 9
@@ -212,7 +213,10 @@ def main():
         logger=wandb_logger,
         log_every_n_steps=log_every_n_steps,
         strategy=wandb_config.strategy,
-        callbacks=callbacks
+        callbacks=callbacks,
+        # some extra args to try to avoid rare nans
+        gradient_clip_val=0.5,
+        detect_anomaly=True
     )
 
     trainer.fit(model, datamodule)
