@@ -7,8 +7,7 @@ from torch import nn
 from torch.nn import functional as F
 import wandb
 import torchvision
-
-# import pytorch_lightning as pl
+import pytorch_lightning as pl
 # from torchmetrics import Accuracy
 
 # re-using from Zoobot
@@ -190,7 +189,7 @@ class ZooBot3D(define_model.GenericLightningModule):
         wandb.log({"galaxy_image": galaxy_image})
 
 # Standalone encoder class: return both the encoder output and the skip connections, include midblocks
-class pytorch_encoder_module(nn.Module):
+class pytorch_encoder_module(pl.LightningModule):  # LightningModule purely for easy GPU support, no callbacks etc
     def __init__(self, 
                  in_out,
                  drop_rates,
@@ -275,7 +274,7 @@ def get_pytorch_dirichlet_head(encoder_dim: int, output_dim: int, test_time_drop
 
 # decoder clss, include the skip connections — how to save on GPU cycles by not forward passing unecessarily?
 
-class pytorch_decoder_module(nn.Module):
+class pytorch_decoder_module(pl.LightningModule):
     def __init__(self,
                  in_out,
                  n_classes,

@@ -92,6 +92,7 @@ def main():
         accelerator = 'cpu'
         precision = '32-true'
         log_every_n_steps = 10
+        devices = 'auto'
     else:
         max_galaxies = None
         max_epochs = 1000
@@ -178,7 +179,8 @@ def main():
         max_epochs=wandb_config.max_epochs,
         precision=wandb_config.precision,
         logger=wandb_logger,
-        log_every_n_steps=log_every_n_steps
+        log_every_n_steps=log_every_n_steps,
+        strategy='auto'
     )
 
     trainer.fit(model, datamodule)
