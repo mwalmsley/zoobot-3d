@@ -180,10 +180,10 @@ def main():
 
     # or for seg loss specifically:
     # validation/epoch_seg_loss:0 
-    
+
     callbacks = [
-        EarlyStopping(monitor='validation/epoch_loss', patience=wandb_config.patience),
-        ModelCheckpoint(dirpath=args.save_dir, monitor='validation/epoch_loss')
+        EarlyStopping(monitor='validation/epoch_loss:0', patience=wandb_config.patience),
+        ModelCheckpoint(dirpath=args.save_dir, monitor='validation/epoch_loss:0')
     ]
 
     trainer = pl.Trainer(
