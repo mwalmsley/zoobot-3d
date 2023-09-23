@@ -88,6 +88,7 @@ def main():
         max_galaxies = 500
         gz3d_galaxies_only = True
         spiral_galaxies_only = True
+        oversampling_ratio = 1
         max_epochs = 2
         patience = 2
         image_size = 128
@@ -104,6 +105,7 @@ def main():
         gz3d_galaxies_only = False
         # spiral_galaxies_only = False
         spiral_galaxies_only = True
+        oversampling_ratio = 10
         log_every_n_steps = 100
         # log_every_n_steps = 9
         max_epochs = 1000
@@ -139,6 +141,7 @@ def main():
         'strategy': strategy,
         'gz3d_galaxies_only': gz3d_galaxies_only,
         'spiral_galaxies_only': spiral_galaxies_only,
+        'oversampling_ratio': oversampling_ratio,
         'loss_to_monitor': loss_to_monitor
     }
     wandb_logger = WandbLogger(project='zoobot-3d', log_model=False, config=config)
@@ -180,6 +183,14 @@ def main():
     val_catalog, test_catalog = train_test_split(hidden_catalog, test_size=0.2/0.3, random_state=args.random_state)
 
     schema = decals_all_campaigns_ortho_schema
+
+    # oversampling
+    if wandb_config.oversampling_ratio > 1:
+        logging.info('Using oversampling')
+        spiral_masked_galaxies = train_catalog[train_catalog['spiral_mask_exists']]
+        train_catalog = pd.concat(
+            [train_catalog] + [spiral_masked_galaxies]*(wandb_config.oversampling_ratio-1))
+        train_catalog = train_catalog.sample(frac=1, random_state=args.random_state).reset_index(drop=True)
 
     
     model = gz3d_pytorch_model.ZooBot3D(
