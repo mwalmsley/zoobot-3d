@@ -208,9 +208,10 @@ def main():
     # use this obj so we can log the string above
     if wandb_config.strategy == 'ddp':
         logging.info('Using DDP strategy')
+        
         strategy_obj = DDPStrategy(
             accelerator=wandb_config.accelerator,
-            parallel_devices=wandb_config.devices,
+            parallel_devices=[torch.device(f"cuda:{i}") for i in wandb_config.devices],
             find_unused_parameters=False
         )
     else:
