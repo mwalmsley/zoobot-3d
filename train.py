@@ -132,7 +132,7 @@ def main():
         # log_every_n_steps = 9
         max_epochs = 1000
         # patience = 50
-        patience = 5
+        patience = 10
         image_size = 224
         batch_size = 256  # 2xA100 at mixed precision
         num_workers = 12
@@ -152,7 +152,8 @@ def main():
     # loss_to_monitor = 'validation/epoch_total_loss:0'
     loss_to_monitor = 'validation/epoch_seg_loss:0'
     # schema = desi_and_gz2_schema()
-    schema = schemas.decals_all_campaigns_ortho_schema
+    # schema = schemas.decals_all_campaigns_ortho_schema
+    schema = schemas.decals_dr5_ortho_schema  # new - just DR5
  
     config = {
         'debug': debug,
