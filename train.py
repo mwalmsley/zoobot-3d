@@ -211,7 +211,7 @@ def main():
         
         strategy_obj = DDPStrategy(
             accelerator=wandb_config.accelerator,
-            parallel_devices=[torch.device(f"cuda:{i}") for i in wandb_config.devices],
+            parallel_devices=[torch.device(f"cuda:{i}") for i in range(wandb_config.devices)],
             find_unused_parameters=False
         )
     else:
