@@ -123,7 +123,7 @@ def main():
     else:
         max_galaxies = None
         # gz3d_galaxies_only = True
-        gz3d_galaxies_only = False
+        gz3d_galaxies_only = True
         # spiral_galaxies_only = False
         spiral_galaxies_only = True
         # oversampling_ratio = 10
