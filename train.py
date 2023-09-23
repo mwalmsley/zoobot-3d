@@ -144,7 +144,8 @@ def main():
         torch.set_float32_matmul_precision('medium')
 
     # seg_loss_weighting = 100
-    seg_loss_weighting = 0  # TODO warning
+    # seg_loss_weighting = 0  # TODO warning
+    seg_loss_weighting = 1e6  # TODO warning
     # loss_to_monitor = 'validation/epoch_total_loss:0'
     loss_to_monitor = 'validation/epoch_seg_loss:0'
     
