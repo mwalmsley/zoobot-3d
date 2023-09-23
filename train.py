@@ -126,8 +126,8 @@ def main():
         gz3d_galaxies_only = False
         # spiral_galaxies_only = False
         spiral_galaxies_only = True
-        oversampling_ratio = 10
-        # oversampling_ratio = 1
+        # oversampling_ratio = 10
+        oversampling_ratio = 1
         # log_every_n_steps = 100
         log_every_n_steps = 9
         max_epochs = 1000
@@ -143,7 +143,8 @@ def main():
         strategy = 'ddp'
         torch.set_float32_matmul_precision('medium')
 
-    seg_loss_weighting = 100
+    # seg_loss_weighting = 100
+    seg_loss_weighting = 0  # TODO warning
     # loss_to_monitor = 'validation/epoch_total_loss:0'
     loss_to_monitor = 'validation/epoch_seg_loss:0'
     
