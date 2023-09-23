@@ -285,7 +285,7 @@ def main():
 
     trainer.fit(model, datamodule)
 
-    # trainer.test(model, datamodule)
+    trainer.test(model, datamodule)
 
 def get_jpg_loc(row, base_dir):
     if row['relative_desi_jpg_loc'] == None:
