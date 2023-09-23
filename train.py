@@ -208,7 +208,7 @@ def main():
 
     # hide votes for galaxies with masks
     logging.info(df[df['spiral_mask_exists']][schema.label_cols[0]])
-    df[df['spiral_mask_exists']][schema.label_cols] = 0
+    df.where(~df['spiral_mask_exists'], 0, inplace=True)
     logging.info(df[df['spiral_mask_exists']][schema.label_cols[0]])
 
     logging.info(f'Galaxies in catalog: {len(df)}')
