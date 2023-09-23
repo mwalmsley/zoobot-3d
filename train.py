@@ -105,7 +105,8 @@ def main():
         gz3d_galaxies_only = False
         # spiral_galaxies_only = False
         spiral_galaxies_only = True
-        oversampling_ratio = 10
+        # oversampling_ratio = 10
+        oversampling_ratio = 1
         log_every_n_steps = 100
         # log_every_n_steps = 9
         max_epochs = 1000
@@ -168,6 +169,7 @@ def main():
     logging.info(df['spiral_mask_loc'].iloc[0])
 
     logging.info('Check paths')
+    # TODO should precalculate
     df['spiral_mask_exists'] = df['spiral_mask_loc'].apply(os.path.isfile)
     if wandb_config.gz3d_galaxies_only:
         df = df.query('spiral_mask_exists')
@@ -190,7 +192,9 @@ def main():
         logging.info('Using oversampling')
         spiral_masked_galaxies = train_catalog[train_catalog['spiral_mask_exists']]
         train_catalog = pd.concat(
-            [train_catalog] + [spiral_masked_galaxies]*(wandb_config.oversampling_ratio-1))
+            [train_catalog] + [spiral_masked_galaxies]*(wandb_config.oversampling_ratio-1)
+        )
+        # and shuffle again
         train_catalog = train_catalog.sample(frac=1, random_state=args.random_state).reset_index(drop=True)
 
     
