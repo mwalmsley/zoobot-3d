@@ -101,8 +101,8 @@ def main():
     else:
         max_galaxies = None
         gz3d_galaxies_only = False
-        # spiral_galaxies_only = False
-        spiral_galaxies_only = True
+        spiral_galaxies_only = False
+        # spiral_galaxies_only = True
         log_every_n_steps = 100
         # gz3d_galaxies_only = True
         # log_every_n_steps = 9
