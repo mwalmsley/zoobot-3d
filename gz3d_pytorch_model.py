@@ -140,6 +140,7 @@ class ZooBot3D(define_model.GenericLightningModule):
         self.log(f'{step_name}/epoch_vote_loss:0', multiq_loss_reduced, on_epoch=True, on_step=False, sync_dist=True)
 
         seg_loss_reduced = torch.nanmean(seg_loss)
+        seg_loss_reduced = torch.nan_to_num(seg_loss_reduced)  # will still be nan if NO masks at all in batch
         self.log(f'{step_name}/epoch_seg_loss:0', seg_loss_reduced, on_epoch=True, on_step=False, sync_dist=True)
 
         loss = multiq_loss_reduced + self.seg_loss_weighting * seg_loss_reduced
