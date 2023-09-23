@@ -163,8 +163,14 @@ class ZooBot3D(define_model.GenericLightningModule):
         
         max_images = 5
 
+        # B1HW shape
+        has_spiral_mask = torch.amax(outputs['spiral_mask'], dim=(1, 2, 3)) > 0
+        if torch.sum(has_spiral_mask) == 0:
+            # logging.warning('No spiral masks in batch')
+            return
+
         galaxy_image = wandb.Image(
-            torchvision.utils.make_grid(outputs['image'][:max_images]),
+            torchvision.utils.make_grid(outputs['image'][has_spiral_mask][:max_images]),
             caption='galaxy image'
         )   
         # https://docs.wandb.ai/guides/integrations/lightning#log-images-text-and-more
@@ -173,12 +179,6 @@ class ZooBot3D(define_model.GenericLightningModule):
             {f"{step_name}/galaxy_image": galaxy_image},
             step=self.global_step
         )
-
-        # B1HW shape
-        has_spiral_mask = torch.amax(outputs['spiral_mask'], dim=(1, 2, 3)) > 0
-        if torch.sum(has_spiral_mask) == 0:
-            # logging.warning('No spiral masks in batch')
-            return
 
         predicted_spiral_maps_image = wandb.Image(
             torchvision.utils.make_grid(outputs['predicted_maps'][has_spiral_mask][:max_images, 0:1]),

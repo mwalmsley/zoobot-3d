@@ -8,6 +8,7 @@ import pandas as pd
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
+from pytorch_lightning.strategies.ddp import DDPStrategy
 from sklearn.model_selection import train_test_split
 import wandb
 import albumentations as A
@@ -108,7 +109,7 @@ def main():
         max_epochs = 1000
         patience = 5
         image_size = 224
-        batch_size = 256  # 2xA100 at mixed precision
+        batch_size = 512  # 2xA100 at mixed precision
         num_workers = 12
         accelerator = 'gpu'
         devices = 2
@@ -204,6 +205,16 @@ def main():
         EarlyStopping(monitor=wandb_config.loss_to_monitor, patience=wandb_config.patience),
         ModelCheckpoint(dirpath=args.save_dir, monitor=wandb_config.loss_to_monitor)
     ]
+    # use this obj so we can log the string above
+    if wandb_config.strategy == 'ddp':
+        logging.info('Using DDP strategy')
+        strategy_obj = DDPStrategy(
+            accelerator=wandb_config.accelerator,
+            parallel_devices=wandb_config.devices,
+            find_unused_parameters=False
+        )
+    else:
+        strategy_obj = strategy
 
     trainer = pl.Trainer(
         accelerator=wandb_config.accelerator,
@@ -212,11 +223,12 @@ def main():
         precision=wandb_config.precision,
         logger=wandb_logger,
         log_every_n_steps=log_every_n_steps,
-        strategy=wandb_config.strategy,
+        strategy=strategy_obj,
         callbacks=callbacks,
         # some extra args to try to avoid rare nans
         gradient_clip_val=0.5,
-        detect_anomaly=True
+        detect_anomaly=True,
+        num_nodes=1
     )
 
     trainer.fit(model, datamodule)
