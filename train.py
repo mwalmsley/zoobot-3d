@@ -14,7 +14,7 @@ import wandb
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 
-from zoobot.shared.schemas import Schema
+from zoobot.shared import schemas
 from galaxy_datasets.shared import label_metadata
 
 from galaxy_datasets import transforms
@@ -35,7 +35,7 @@ def desi_and_gz2_schema():
     # print(question_answer_pairs)
     # print(dependencies)
 
-    schema = Schema(question_answer_pairs, dependencies)
+    schema = schemas.Schema(question_answer_pairs, dependencies)
 
     return schema
 
@@ -123,34 +123,36 @@ def main():
     else:
         max_galaxies = None
         # gz3d_galaxies_only = True
-        gz3d_galaxies_only = True
+        gz3d_galaxies_only = False
         # spiral_galaxies_only = False
         spiral_galaxies_only = True
-        # oversampling_ratio = 10
-        oversampling_ratio = 1
+        oversampling_ratio = 10
+        # oversampling_ratio = 1
         log_every_n_steps = 100
         # log_every_n_steps = 9
         max_epochs = 1000
-        patience = 50
-        # patience = 5
+        # patience = 50
+        patience = 5
         image_size = 224
         batch_size = 256  # 2xA100 at mixed precision
         num_workers = 12
         accelerator = 'gpu'
-        devices = 2
-        # TODO devices = 1, strategy = auto, just in case of ddp weirdness
+        devices = 1
+        strategy = 'auto'
+        # devices = 2
+        # strategy = 'ddp'
+        # just in case of ddp weirdness
         # since I'm not using the second GPU anyway
         precision = '16-mixed'
         
-        strategy = 'ddp'
         torch.set_float32_matmul_precision('medium')
 
     seg_loss_weighting = 100
     # seg_loss_weighting = 0  # TODO warning
     # loss_to_monitor = 'validation/epoch_total_loss:0'
     loss_to_monitor = 'validation/epoch_seg_loss:0'
-    
-
+    # schema = desi_and_gz2_schema()
+    schema = schemas.decals_all_campaigns_ortho_schema
  
     config = {
         'debug': debug,
@@ -213,7 +215,7 @@ def main():
     train_catalog, hidden_catalog = train_test_split(df, test_size=0.3, random_state=args.random_state)
     val_catalog, test_catalog = train_test_split(hidden_catalog, test_size=0.2/0.3, random_state=args.random_state)
 
-    schema = desi_and_gz2_schema()
+    
 
     # oversampling
     if wandb_config.oversampling_ratio > 1:
