@@ -210,7 +210,7 @@ def main():
     logging.info(df[df['spiral_mask_exists']][schema.label_cols[0]])
     df[schema.label_cols] = df[schema.label_cols].fillna(0).astype(int)
     # where cond False (i.e. where spiral_mask_exists=True), replace with other (0)
-    df = df.where(~df['spiral_mask_exists'], 0)
+    df.where(~df['spiral_mask_exists'], 0, inplace=True)
     logging.info(df[df['spiral_mask_exists']][schema.label_cols[0]])
 
     logging.info(f'Galaxies in catalog: {len(df)}')
