@@ -194,7 +194,7 @@ class ZooBot3D(define_model.GenericLightningModule):
             )
 
             true_mask_image = wandb.Image(
-                torchvision.utils.make_grid(outputs[f'{mask_name}_mask'][has_mask][:max_images, mask_index:mask_index+1]),
+                torchvision.utils.make_grid(outputs[f'{mask_name}_mask'][has_mask][:max_images]),
             )    
             self.trainer.logger.experiment.log(
                 {f"{step_name}/{mask_name}_mask_true": true_mask_image},
