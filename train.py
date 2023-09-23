@@ -128,16 +128,18 @@ def main():
         spiral_galaxies_only = True
         # oversampling_ratio = 10
         oversampling_ratio = 1
-        # log_every_n_steps = 100
-        log_every_n_steps = 9
+        log_every_n_steps = 100
+        # log_every_n_steps = 9
         max_epochs = 1000
-        # patience = 50
-        patience = 5
+        patience = 50
+        # patience = 5
         image_size = 224
         batch_size = 256  # 2xA100 at mixed precision
         num_workers = 12
         accelerator = 'gpu'
         devices = 2
+        # TODO devices = 1, strategy = auto, just in case of ddp weirdness
+        # since I'm not using the second GPU anyway
         precision = '16-mixed'
         
         strategy = 'ddp'
