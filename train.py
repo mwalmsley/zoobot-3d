@@ -14,10 +14,31 @@ import wandb
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 
-from zoobot.shared.schemas import decals_all_campaigns_ortho_schema
+from zoobot.shared.schemas import schemas
+from galaxy_datasets.shared import label_metadata
 
 from galaxy_datasets import transforms
 import gz3d_pytorch_model, pytorch_datamodule
+
+
+def desi_and_gz2_schema():
+
+
+    question_answer_pairs = {}
+    question_answer_pairs.update(label_metadata.decals_all_campaigns_ortho_pairs)
+    question_answer_pairs.update(label_metadata.gz2_ortho_pairs)
+
+    dependencies = {}
+    dependencies.update(label_metadata.decals_ortho_dependencies)
+    dependencies.update(label_metadata.gz2_ortho_dependencies)
+
+    # print(question_answer_pairs)
+    # print(dependencies)
+
+    schema = schemas.Schema(question_answer_pairs, dependencies)
+
+    return schema
+
 
 # lazy copy of the below, but with additional_targets=
 # https://github.com/mwalmsley/galaxy-datasets/blob/main/galaxy_datasets/transforms.py#L6
@@ -101,8 +122,8 @@ def main():
         strategy = 'auto'
     else:
         max_galaxies = None
-        gz3d_galaxies_only = True
-        # gz3d_galaxies_only = False
+        # gz3d_galaxies_only = True
+        gz3d_galaxies_only = False
         # spiral_galaxies_only = False
         spiral_galaxies_only = True
         # oversampling_ratio = 10
@@ -110,8 +131,8 @@ def main():
         # log_every_n_steps = 100
         log_every_n_steps = 9
         max_epochs = 1000
-        patience = 50
-        # patience = 5
+        # patience = 50
+        patience = 5
         image_size = 224
         batch_size = 256  # 2xA100 at mixed precision
         num_workers = 12
@@ -150,8 +171,11 @@ def main():
     wandb.init(project='merger', config=config)  # args will be ignored by existing logger
     wandb_config = wandb.config
 
-    df = pd.read_parquet(base_dir + 'data/gz3d_and_gz_desi_master_catalog.parquet')
+    # df = pd.read_parquet(base_dir + 'data/gz3d_and_gz_desi_master_catalog.parquet')
+    df = pd.read_parquet(base_dir + 'data/gz3d_and_desi_master_catalog.parquet')  # now includes GZ2 also
     if wandb_config.spiral_galaxies_only:
+        # these are PREDICTED fractions, hence no _dr12, _gz2, etc
+        # consistent across GZ2/DESI (nice)
         df = df[df['smooth-or-featured_featured-or-disk_fraction'] > 0.5]
         df = df[df['disk-edge-on_yes_fraction'] < 0.5]
         df = df[df['has-spiral-arms_yes_fraction'] > 0.5]
@@ -186,7 +210,7 @@ def main():
     train_catalog, hidden_catalog = train_test_split(df, test_size=0.3, random_state=args.random_state)
     val_catalog, test_catalog = train_test_split(hidden_catalog, test_size=0.2/0.3, random_state=args.random_state)
 
-    schema = decals_all_campaigns_ortho_schema
+    schema = desi_and_gz2_schema()
 
     # oversampling
     if wandb_config.oversampling_ratio > 1:
