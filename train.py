@@ -101,16 +101,17 @@ def main():
         strategy = 'auto'
     else:
         max_galaxies = None
-        # gz3d_galaxies_only = True
-        gz3d_galaxies_only = False
+        gz3d_galaxies_only = True
+        # gz3d_galaxies_only = False
         # spiral_galaxies_only = False
         spiral_galaxies_only = True
         # oversampling_ratio = 10
         oversampling_ratio = 1
-        log_every_n_steps = 100
-        # log_every_n_steps = 9
+        # log_every_n_steps = 100
+        log_every_n_steps = 9
         max_epochs = 1000
-        patience = 5
+        patience = 15
+        # patience = 5
         image_size = 224
         batch_size = 256  # 2xA100 at mixed precision
         num_workers = 12
@@ -218,7 +219,12 @@ def main():
     datamodule.setup('fit')
 
     callbacks = [
-        EarlyStopping(monitor=wandb_config.loss_to_monitor, patience=wandb_config.patience),
+        EarlyStopping(
+            monitor=wandb_config.loss_to_monitor,
+            patience=wandb_config.patience,
+            check_finite=True,
+            verbose=True
+        ),
         ModelCheckpoint(dirpath=args.save_dir, monitor=wandb_config.loss_to_monitor)
     ]
     # use this obj so we can log the string above
