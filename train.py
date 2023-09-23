@@ -167,8 +167,9 @@ def main():
 
     logging.info(df['spiral_mask_loc'].iloc[0])
 
+    logging.info('Check paths')
+    df['spiral_mask_exists'] = df['spiral_mask_loc'].apply(os.path.isfile)
     if wandb_config.gz3d_galaxies_only:
-        df['spiral_mask_exists'] = df['spiral_mask_loc'].apply(os.path.isfile)
         df = df.query('spiral_mask_exists')
         assert len(df) > 0
 
