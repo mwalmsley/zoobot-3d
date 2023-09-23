@@ -166,38 +166,40 @@ class ZooBot3D(define_model.GenericLightningModule):
         
         max_images = 5
 
-        # B1HW shape
-        has_spiral_mask = torch.amax(outputs['spiral_mask'], dim=(1, 2, 3)) > 0
-        if torch.sum(has_spiral_mask) == 0:
-            # logging.warning('No spiral masks in batch')
-            return
 
-        galaxy_image = wandb.Image(
-            torchvision.utils.make_grid(outputs['image'][has_spiral_mask][:max_images]),
-            caption='galaxy image'
-        )   
-        # https://docs.wandb.ai/guides/integrations/lightning#log-images-text-and-more
-        # https://github.com/Lightning-AI/lightning/discussions/6723 
-        self.trainer.logger.experiment.log(
-            {f"{step_name}/galaxy_image": galaxy_image},
-            step=self.global_step
-        )
 
-        predicted_spiral_maps_image = wandb.Image(
-            torchvision.utils.make_grid(outputs['predicted_maps'][has_spiral_mask][:max_images, 0:1]),
-        )    
-        self.trainer.logger.experiment.log(
-            {f"{step_name}/predicted_spiral_mask": predicted_spiral_maps_image},
-            step=self.global_step
-        )
+        for mask_name, mask_index in [('spiral', 0), ('bar', 1)]:
 
-        true_spiral_maps_image = wandb.Image(
-            torchvision.utils.make_grid(outputs['spiral_mask'][has_spiral_mask][:max_images, 0:1]),
-        )    
-        self.trainer.logger.experiment.log(
-            {f"{step_name}/true_spiral_mask": true_spiral_maps_image},
-            step=self.global_step
-        )
+            # B1HW shape
+            has_mask = torch.amax(outputs[f'{mask_name}_mask'], dim=(1, 2, 3)) > 0
+            if torch.sum(has_mask) == 0:
+                continue  # on to the next, don't bother with this one
+
+            galaxy_image = wandb.Image(
+                torchvision.utils.make_grid(outputs['image'][has_mask][:max_images])
+            )   
+            # https://docs.wandb.ai/guides/integrations/lightning#log-images-text-and-more
+            # https://github.com/Lightning-AI/lightning/discussions/6723 
+            self.trainer.logger.experiment.log(
+                {f"{step_name}/{mask_name}_galaxy_image": galaxy_image},
+                step=self.global_step
+            )
+
+            predicted_mask_image = wandb.Image(
+                torchvision.utils.make_grid(outputs['predicted_maps'][has_mask][:max_images, mask_index:mask_index+1]),
+            )    
+            self.trainer.logger.experiment.log(
+                {f"{step_name}/{mask_name}_mask_predicted": predicted_mask_image},
+                step=self.global_step
+            )
+
+            true_mask_image = wandb.Image(
+                torchvision.utils.make_grid(outputs[f'{mask_name}_mask'][has_mask][:max_images, mask_index:mask_index+1]),
+            )    
+            self.trainer.logger.experiment.log(
+                {f"{step_name}/{mask_name}_mask_true": true_mask_image},
+                step=self.global_step
+            )
 
 
 # Standalone encoder class: return both the encoder output and the skip connections, include midblocks

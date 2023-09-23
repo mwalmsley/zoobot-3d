@@ -152,8 +152,8 @@ def main():
     # loss_to_monitor = 'validation/epoch_total_loss:0'
     loss_to_monitor = 'validation/epoch_seg_loss:0'
     # schema = desi_and_gz2_schema()
-    # schema = schemas.decals_all_campaigns_ortho_schema
-    schema = schemas.decals_dr5_ortho_schema  # new - just DR5
+    schema = schemas.decals_all_campaigns_ortho_schema
+    # schema = schemas.decals_dr5_ortho_schema  # new - just DR5
  
     config = {
         'debug': debug,
@@ -205,6 +205,11 @@ def main():
     if wandb_config.gz3d_galaxies_only:
         df = df.query('spiral_mask_exists')
         assert len(df) > 0
+
+    # hide votes for galaxies with masks
+    logging.info(df[df['spiral_mask_exists']][schema.label_cols[0]])
+    df[df['spiral_mask_exists']][schema.label_cols] = 0
+    logging.info(df[df['spiral_mask_exists']][schema.label_cols[0]])
 
     logging.info(f'Galaxies in catalog: {len(df)}')
 
