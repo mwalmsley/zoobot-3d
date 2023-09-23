@@ -14,7 +14,7 @@ import wandb
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 
-from zoobot.shared.schemas import schemas
+from zoobot.shared.schemas import Schema
 from galaxy_datasets.shared import label_metadata
 
 from galaxy_datasets import transforms
@@ -35,7 +35,7 @@ def desi_and_gz2_schema():
     # print(question_answer_pairs)
     # print(dependencies)
 
-    schema = schemas.Schema(question_answer_pairs, dependencies)
+    schema = Schema(question_answer_pairs, dependencies)
 
     return schema
 
