@@ -110,7 +110,7 @@ def main():
         # log_every_n_steps = 100
         log_every_n_steps = 9
         max_epochs = 1000
-        patience = 15
+        patience = 50
         # patience = 5
         image_size = 224
         batch_size = 256  # 2xA100 at mixed precision
