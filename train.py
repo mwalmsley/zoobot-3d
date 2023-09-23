@@ -217,8 +217,8 @@ def main():
         strategy_obj = strategy
 
     trainer = pl.Trainer(
-        accelerator=wandb_config.accelerator,
-        devices=wandb_config.devices,
+        # accelerator=wandb_config.accelerator,
+        # devices=wandb_config.devices,
         max_epochs=wandb_config.max_epochs,
         precision=wandb_config.precision,
         logger=wandb_logger,
