@@ -126,8 +126,8 @@ def main():
         gz3d_galaxies_only = False
         # spiral_galaxies_only = False
         spiral_galaxies_only = True
-        # oversampling_ratio = 10
-        oversampling_ratio = 1
+        oversampling_ratio = 10
+        # oversampling_ratio = 1
         # log_every_n_steps = 100
         log_every_n_steps = 9
         max_epochs = 1000
