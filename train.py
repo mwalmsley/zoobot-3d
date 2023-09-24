@@ -54,8 +54,11 @@ def train(config : omegaconf.DictConfig) -> None:
         config.accelerator = 'cpu'
         config.precision = '32-true'
         config.devices = 'auto'
-        
-        torch.set_float32_matmul_precision('medium')
+    
+    if config.accelerator == 'gpu':
+        if config.precision == '16-mixed':
+            torch.set_float32_matmul_precision('medium')
+
 
     if config.schema_name == 'desi_dr5':
         schema = schemas.decals_dr5_ortho_schema  # new - just DR5

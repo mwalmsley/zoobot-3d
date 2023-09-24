@@ -22,4 +22,5 @@ sbatch train.sh "oversampling_ratio=1 use_vote_loss=False use_seg_loss=True gz3d
 # add oversampling
 # sbatch train.sh oversampling_ratio=10 use_vote_loss=True use_seg_loss=True
 
-# all filter out non-spiral desi galaxies by default
+# as above, extra oversampling, and not filtering out non-feat galaxies
+sbatch train.sh oversampling_ratio=30 use_vote_loss=True use_seg_loss=True spiral_galaxies_only=False
