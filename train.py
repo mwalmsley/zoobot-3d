@@ -73,10 +73,8 @@ def train(config : omegaconf.DictConfig) -> None:
         config, resolve=True, throw_on_missing=True
     )
     wandb_logger = WandbLogger(project='zoobot-3d', log_model=False, config=wandb.config)
-    # wandb.init(project='zoobot-3d')
     config = wandb.config
 
-    # df = pd.read_parquet(base_dir + 'data/gz3d_and_gz_desi_master_catalog.parquet')
     df = pd.read_parquet(base_dir + 'data/gz3d_and_desi_master_catalog.parquet')  # now includes GZ2 also
 
     logging.info(df['relative_spiral_mask_loc'].iloc[0])

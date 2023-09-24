@@ -9,7 +9,7 @@ loss_to_monitor: 'validation/epoch_seg_loss:0'
 
 use_vote_loss: True
 use_seg_loss: True
-seg_loss_weighting: 100.
+seg_loss_weighting: 3
 
 gz3d_galaxies_only: False
 spiral_galaxies_only: True
