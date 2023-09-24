@@ -14,10 +14,12 @@ pwd; hostname; date
 nvidia-smi
 
 PYTHON=/share/nas2/walml/miniconda3/envs/zoobot38_torch/bin/python
+TRAIN_SCRIPT_LOC=/share/nas2/walml/repos/zoobot-3d/train.py
 
 # export NCCL_DEBUG=INFO
 # export PYTORCH_KERNEL_CACHE_PATH=/share/nas2/walml/.cache/torch/kernels
 
 SAVE_DIR=/share/nas2/walml/repos/zoobot-3d/results/models
 
-srun $PYTHON /share/nas2/walml/repos/zoobot-3d/train.py $HYDRA_OVERRIDES
+# without quotes e.g. "$1"", string with spaces will become multiple args
+srun $PYTHON $TRAIN_SCRIPT_LOC $1
