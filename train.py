@@ -179,8 +179,8 @@ def train(config : omegaconf.DictConfig) -> None:
         strategy_obj = config.strategy
 
     trainer = pl.Trainer(
-        # accelerator=config.accelerator,
-        # devices=config.devices,
+        accelerator=config.accelerator,
+        devices=config.devices,
         max_epochs=config.max_epochs,
         precision=config.precision,
         logger=wandb_logger,
@@ -192,10 +192,15 @@ def train(config : omegaconf.DictConfig) -> None:
         detect_anomaly=True,
         num_nodes=1
     )
-
     trainer.fit(model, datamodule)
 
-    trainer.test(model, datamodule)
+    # single GPU only for testing, as recommended
+    eval_trainer = pl.Trainer(
+        logger=wandb_logger,
+        devices=1,
+        accelerator=config.accelerator
+    )
+    eval_trainer.test(model, datamodule)
 
 def get_jpg_loc(row, base_dir):
     if row['relative_desi_jpg_loc'] == None:
