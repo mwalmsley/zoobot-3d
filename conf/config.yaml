@@ -1,7 +1,9 @@
 random_state: 42
 debug: False
+max_galaxies: null  # i.e. None
 
 batch_size: 256
+image_size: 256
 max_epochs: 5000
 loss_to_monitor: 'validation/epoch_seg_loss:0'
 
