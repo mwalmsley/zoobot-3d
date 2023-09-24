@@ -117,8 +117,8 @@ def train(config : omegaconf.DictConfig) -> None:
         logging.info(f'Galaxies after cut: {len(df)}')
 
     
-    train_catalog, hidden_catalog = train_test_split(df, test_size=0.3, random_state=args.random_state)
-    val_catalog, test_catalog = train_test_split(hidden_catalog, test_size=0.2/0.3, random_state=args.random_state)
+    train_catalog, hidden_catalog = train_test_split(df, test_size=0.3, random_state=config.random_state)
+    val_catalog, test_catalog = train_test_split(hidden_catalog, test_size=0.2/0.3, random_state=config.random_state)
 
     log_every_n_steps = min(int(len(train_catalog) / config.batch_size), 100)
 
@@ -130,7 +130,7 @@ def train(config : omegaconf.DictConfig) -> None:
             [train_catalog] + [spiral_masked_galaxies]*(config.oversampling_ratio-1)
         )
         # and shuffle again
-        train_catalog = train_catalog.sample(frac=1, random_state=args.random_state).reset_index(drop=True)
+        train_catalog = train_catalog.sample(frac=1, random_state=config.random_state).reset_index(drop=True)
 
     
     model = gz3d_pytorch_model.ZooBot3D(
