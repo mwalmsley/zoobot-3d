@@ -110,9 +110,10 @@ class ZooBot3D(define_model.GenericLightningModule):
 
         if self.use_vote_loss:
             # self.loss_func returns shape of (galaxy, question), mean to ()
-            multiq_loss = self.dirichlet_loss(pred_labels, batch['label_cols'], sum_over_questions=False)
+            
+            has_votes = torch.sum(batch['label_cols'], dim=1) > 0
+            multiq_loss = self.dirichlet_loss(pred_labels[has_votes], batch['label_cols'][has_votes], sum_over_questions=False)
             multiq_loss_reduced = torch.mean(multiq_loss)
-            # TODO Dirichlet loss is trivially 0 for galaxies with no labels, which may add weighting problems
             loss += multiq_loss_reduced
 
             # optional extra logging
