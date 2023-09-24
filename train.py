@@ -89,12 +89,16 @@ def train(config : omegaconf.DictConfig) -> None:
     # TODO could precalculate
     df['spiral_mask_exists'] = df['spiral_mask_loc'].apply(os.path.isfile)
 
-    # hide votes for galaxies with masks
+    # always hide votes for galaxies with masks
     logging.info(df[df['spiral_mask_exists']][schema.label_cols[0]])
     df[schema.label_cols] = df[schema.label_cols].fillna(0).astype(int)
     # where cond False (i.e. where spiral_mask_exists=True), replace with other (0)
     df[schema.label_cols] = df[schema.label_cols].where(~df['spiral_mask_exists'], 0)
     logging.info(df[df['spiral_mask_exists']][schema.label_cols[0]])
+
+    # for all datasets, only select galaxies with either spiral masks OR votes
+    has_votes = df[schema.label_cols].sum(axis=1) > 0
+    df = df[df['spiral_mask_exists'] | has_votes].reset_index(drop=True)
 
     logging.info(f'Galaxies in catalog: {len(df)}')
 
