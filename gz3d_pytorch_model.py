@@ -11,7 +11,6 @@ import pytorch_lightning as pl
 # from torchmetrics import Accuracy
 
 # re-using from Zoobot
-from zoobot.pytorch.training import losses
 from zoobot.pytorch.estimators import define_model, efficientnet_custom
 from zoobot.pytorch.estimators.custom_layers import PermaDropout
 
@@ -32,6 +31,8 @@ class ZooBot3D(define_model.GenericLightningModule):
                  question_index_groups=None,
                  learning_rate=1e-3,
                  weight_decay=0.05,
+                 use_vote_loss=True,
+                 use_seg_loss=True,
                  seg_loss_weighting=1.
                  ):
         super().__init__()
@@ -40,6 +41,8 @@ class ZooBot3D(define_model.GenericLightningModule):
         self.learning_rate = learning_rate
         self.weight_decay = weight_decay
 
+        self.use_vote_loss = use_vote_loss
+        self.use_seg_loss = use_seg_loss
         self.seg_loss_weighting = seg_loss_weighting
 
         dims = [self.channels, *map(lambda m: n_filters * m, dim_mults)]
@@ -80,7 +83,6 @@ class ZooBot3D(define_model.GenericLightningModule):
         return torch.optim.AdamW(
             self.parameters(),
             lr=self.learning_rate,
-            # betas=self.betas,
             weight_decay=self.weight_decay
         )  
 
@@ -93,59 +95,49 @@ class ZooBot3D(define_model.GenericLightningModule):
 
         pred_labels, pred_maps = self(batch['image'])  # forward pass of both encoder and decoder
         loss = self.calculate_and_log_loss((pred_labels, pred_maps), batch, step_name)      
-        # outputs['loss'] = loss
         outputs = {
             'predictions': pred_labels,
             'predicted_maps': pred_maps,
             'loss': loss
-            # 'labels': batch['label_cols'],
-            # 'spiral_mask': batch.get('spiral_mask', torch.zeros(1, self.input_size, self.input_size)),
-            # 'bar_mask': batch.get('bar_mask', torch.zeros(1, self.input_size, self.input_size))
         }
         outputs.update(batch)  # include the inputs as well, for convenience
-
-
-        # if step_name == 'train':
-            
-    
         return outputs
 
     def calculate_and_log_loss(self, predictions, batch, step_name):
         # loss logging, found it!
         pred_labels, pred_maps = predictions
-        # self.loss_func returns shape of (galaxy, question), mean to ()
-        multiq_loss = self.dirichlet_loss(pred_labels, batch['label_cols'], sum_over_questions=False)
+        loss = torch.Tensor(0)
 
-        # we will always have 'spiral' and 'bar_mask' batch keys, else batch elements wouldn't be stackable
-        seg_maps = torch.concat([batch['spiral_mask'], batch['bar_mask']], dim=1)
-        # each seg map, if in the batch dict, is called e.g. spiral_mask, bar_mask, etc
-        # masks are input as (batch, 1, 128, 128), where 1st dim is (dummy) channel
-        # concat as (batch, map_index, 128, 128), where 1st dim is now map index
+        if self.use_vote_loss:
+            # self.loss_func returns shape of (galaxy, question), mean to ()
+            multiq_loss = self.dirichlet_loss(pred_labels, batch['label_cols'], sum_over_questions=False)
+            multiq_loss_reduced = torch.mean(multiq_loss)
+            # TODO Dirichlet loss is trivially 0 for galaxies with no labels, which may add weighting problems
+            loss += multiq_loss_reduced
 
-        seg_loss = self.seg_loss(seg_maps, pred_maps, reduction='none')  # shape (batch, map_index, 128, 128)]
-        # set nan where seg map max is 0 i.e. no seg labels
-        # missing_maps is shape (batch, 2). True where segmap missing
-        missing_maps = torch.amax(seg_maps, dim=(2, 3)) == 0
-        seg_loss[missing_maps] = torch.nan
+            # optional extra logging
+            self.log(f'{step_name}/epoch_vote_loss:0', multiq_loss_reduced, on_epoch=True, on_step=False, sync_dist=True)
+            # self.log_loss_per_question(multiq_loss, prefix=step_name)
 
-        # optional extra logging
-        self.log_loss_per_question(multiq_loss, prefix=step_name)
-        self.log_loss_per_seg_map_name(seg_loss, prefix=step_name)
+        if self.use_seg_loss:
+            # we will always have 'spiral' and 'bar_mask' batch keys, else batch elements wouldn't be stackable
+            seg_maps = torch.concat([batch['spiral_mask'], batch['bar_mask']], dim=1)
+            # each seg map, if in the batch dict, is called e.g. spiral_mask, bar_mask, etc
+            # masks are input as (batch, 1, 128, 128), where 1st dim is (dummy) channel
+            # concat as (batch, map_index, 128, 128), where 1st dim is now map index
+            seg_loss = self.seg_loss(seg_maps, pred_maps, reduction='none')  # shape (batch, map_index, 128, 128)]
+            # set nan where seg map max is 0 i.e. no seg labels
+            # missing_maps is shape (batch, 2). True where segmap missing
+            missing_maps = torch.amax(seg_maps, dim=(2, 3)) == 0
+            seg_loss[missing_maps] = torch.nan
+            seg_loss_reduced = torch.nanmean(seg_loss)
+            seg_loss_reduced = torch.nan_to_num(seg_loss_reduced)  # will still be nan if NO masks at all in batch
+            loss += self.seg_loss_weighting * seg_loss_reduced
 
-        # sum over questions and take a per-device mean
-        # for DDP strategy, batch size is constant (batches are not divided, data pool is divided)
-        # so this will be the global per-example mean
-        # TODO Dirichlet loss is trivially 0 for galaxies with no labels, which may add weighting problems
-        multiq_loss_reduced = torch.mean(multiq_loss)
-        self.log(f'{step_name}/epoch_vote_loss:0', multiq_loss_reduced, on_epoch=True, on_step=False, sync_dist=True)
+            # optional extra logging (okay the first one is v. handy for early stopping, not optional really)
+            self.log(f'{step_name}/epoch_seg_loss:0', seg_loss_reduced, on_epoch=True, on_step=False, sync_dist=True)
+            self.log_loss_per_seg_map_name(seg_loss, prefix=step_name)
 
-        seg_loss_reduced = torch.nanmean(seg_loss)
-        seg_loss_reduced = torch.nan_to_num(seg_loss_reduced)  # will still be nan if NO masks at all in batch
-        self.log(f'{step_name}/epoch_seg_loss:0', seg_loss_reduced, on_epoch=True, on_step=False, sync_dist=True)
-
-        loss = multiq_loss_reduced + self.seg_loss_weighting * seg_loss_reduced
-        # TODO temp remove vote loss
-        # loss = self.seg_loss_weighting * seg_loss_reduced
         self.log(f'{step_name}/epoch_total_loss:0', loss, on_epoch=True, on_step=False, sync_dist=True)
 
         return loss
@@ -161,13 +153,7 @@ class ZooBot3D(define_model.GenericLightningModule):
             self.log(f'{prefix}/epoch_seg_maps/seg_map_{seg_map_class_index}_loss:0', torch.nanmean(seg_loss[:, seg_map_class_index, :, :]), on_epoch=True, on_step=False, sync_dist=True)
 
     def log_outputs(self, outputs, step_name):
-        # skip once happy, can slow down training
-        # pass
-        
         max_images = 5
-
-
-
         for mask_name, mask_index in [('spiral', 0), ('bar', 1)]:
 
             # B1HW shape

@@ -196,6 +196,8 @@ def main(config : DictConfig) -> None:
         n_classes=2,  # spiral segmap, bar segmap
         output_dim=len(schema.label_cols),
         question_index_groups=schema.question_index_groups,
+        use_vote_loss=config.use_vote_loss,
+        use_seg_loss=config.use_seg_loss,
         seg_loss_weighting=config.seg_loss_weighting
     )
 
