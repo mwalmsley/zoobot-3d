@@ -106,7 +106,7 @@ class ZooBot3D(define_model.GenericLightningModule):
     def calculate_and_log_loss(self, predictions, batch, step_name):
         # loss logging, found it!
         pred_labels, pred_maps = predictions
-        loss = torch.Tensor(0)
+        loss = 0.
 
         if self.use_vote_loss:
             # self.loss_func returns shape of (galaxy, question), mean to ()
