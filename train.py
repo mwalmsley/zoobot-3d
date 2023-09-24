@@ -54,7 +54,6 @@ def train(config : omegaconf.DictConfig) -> None:
         config.accelerator = 'cpu'
         config.precision = '32-true'
         config.devices = 'auto'
-        config.strategy = 'auto'
         
         torch.set_float32_matmul_precision('medium')
 
@@ -167,7 +166,7 @@ def train(config : omegaconf.DictConfig) -> None:
         ModelCheckpoint(dirpath=save_dir, monitor=config.loss_to_monitor)
     ]
     # use this obj so we can log the string above
-    if config.strategy == 'ddp':
+    if config.devices >1:
         logging.info('Using DDP strategy')
         
         strategy_obj = DDPStrategy(
