@@ -7,14 +7,19 @@
 
 # #!/bin/bash
 
-# use one loss or the other (baselines for each task)
+# quick local check
 # sbatch train.sh debug=True
 
-sbatch train.sh "oversampling_ratio=1 use_vote_loss=True use_seg_loss=False"
-sbatch train.sh "oversampling_ratio=1 use_vote_loss=False use_seg_loss=True"
+# use seg loss only
+# sbatch train.sh "oversampling_ratio=1 use_vote_loss=False use_seg_loss=True"
 
-# # use both lossses
-# sbatch train.sh oversampling_ratio=1 use_vote_loss=True use_seg_loss=True
-# # add oversampling
-# sbatch train.sh oversampling_ratio=10 use_vote_loss=True use_seg_loss=True
-# # all using gz3d masks plus spiral-predicted desi dr5 galaxies
+# as above, but gz3d only (as even simpler baseline)
+sbatch train.sh "oversampling_ratio=1 use_vote_loss=False use_seg_loss=True --gz3d_galaxies_only=True"
+
+# use both lossses
+sbatch train.sh oversampling_ratio=1 use_vote_loss=True use_seg_loss=True
+
+# add oversampling
+sbatch train.sh oversampling_ratio=10 use_vote_loss=True use_seg_loss=True
+
+# all filter out non-spiral desi galaxies by default
