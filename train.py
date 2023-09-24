@@ -114,14 +114,14 @@ def train(config : omegaconf.DictConfig) -> None:
     if config.spiral_galaxies_only:
         # these are PREDICTED fractions, hence no _dr12, _gz2, etc
         # consistent across GZ2/DESI (nice)
-        is_predicted_feat = train_df['smooth-or-featured_featured-or-disk_fraction'] > 0.5
-        is_predicted_face = train_df['disk-edge-on_yes_fraction'] < 0.5
-        is_predicted_spiral = train_df['has-spiral-arms_yes_fraction'] > 0.5
+        is_predicted_feat = train_catalog['smooth-or-featured_featured-or-disk_fraction'] > 0.5
+        is_predicted_face = train_catalog['disk-edge-on_yes_fraction'] < 0.5
+        is_predicted_spiral = train_catalog['has-spiral-arms_yes_fraction'] > 0.5
         # always keep the spiral masked galaxies, regardless
-        train_df = train_df[(is_predicted_feat & is_predicted_face & is_predicted_spiral) | (train_df['spiral_mask_exists'])]
+        train_catalog = train_catalog[(is_predicted_feat & is_predicted_face & is_predicted_spiral) | (train_catalog['spiral_mask_exists'])]
     if config.gz3d_galaxies_only:
-        train_df = train_df.query('spiral_mask_exists')
-        assert len(train_df) > 0
+        train_catalog = train_catalog.query('spiral_mask_exists')
+        assert len(train_catalog) > 0
 
     log_every_n_steps = min(int(len(train_catalog) / config.batch_size), 100)
 
