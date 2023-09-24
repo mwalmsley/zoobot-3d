@@ -3,7 +3,7 @@ import os
 import logging
 import argparse
 
-from omegaconf import DictConfig
+import omegaconf
 import hydra
 # https://hydra.cc/docs/configure_hydra/intro/#accessing-the-hydra-config
 from hydra.core.hydra_config import HydraConfig
@@ -28,7 +28,7 @@ import gz3d_pytorch_model, pytorch_datamodule
 
 
 @hydra.main(version_base=None, config_path="conf", config_name="config")
-def train(config : DictConfig) -> None:
+def train(config : omegaconf.DictConfig) -> None:
 
     pl.seed_everything(config.random_state)
 
@@ -67,8 +67,11 @@ def train(config : DictConfig) -> None:
     else:
         raise ValueError(config.schema_name)
 
-    wandb_logger = WandbLogger(project='zoobot-3d', log_model=False, config=config)
-    wandb.init(project='merger', config=config)  # args will be ignored by existing logger
+    wandb.config = omegaconf.OmegaConf.to_container(
+        config, resolve=True, throw_on_missing=True
+    )
+    wandb_logger = WandbLogger(project='zoobot-3d', log_model=False, config=wandb.config)
+    # wandb.init(project='zoobot-3d')
     config = wandb.config
 
     # df = pd.read_parquet(base_dir + 'data/gz3d_and_gz_desi_master_catalog.parquet')
