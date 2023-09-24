@@ -14,13 +14,13 @@
 # sbatch train.sh "oversampling_ratio=1 use_vote_loss=False use_seg_loss=True"
 
 # as above, but gz3d only (as even simpler baseline)
-sbatch train.sh "oversampling_ratio=1 use_vote_loss=False use_seg_loss=True gz3d_galaxies_only=True"
+# sbatch train.sh "oversampling_ratio=1 use_vote_loss=False use_seg_loss=True gz3d_galaxies_only=True"
 
-# use both lossses
-# sbatch train.sh oversampling_ratio=1 use_vote_loss=True use_seg_loss=True
+# use both losses
+sbatch train.sh oversampling_ratio=1 use_vote_loss=True use_seg_loss=True
 
 # add oversampling
-# sbatch train.sh oversampling_ratio=10 use_vote_loss=True use_seg_loss=True
+sbatch train.sh oversampling_ratio=10 use_vote_loss=True use_seg_loss=True
 
 # as above, extra oversampling, and not filtering out non-feat galaxies
-sbatch train.sh oversampling_ratio=30 use_vote_loss=True use_seg_loss=True spiral_galaxies_only=False
+# sbatch train.sh oversampling_ratio=30 use_vote_loss=True use_seg_loss=True spiral_galaxies_only=False
