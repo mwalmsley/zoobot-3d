@@ -175,7 +175,7 @@ def train(config : omegaconf.DictConfig) -> None:
             find_unused_parameters=True
         )
     else:
-        strategy_obj = config.strategy
+        strategy_obj = 'auto'  # doesn't seem to be 'simple' option...
 
     trainer = pl.Trainer(
         accelerator=config.accelerator,
