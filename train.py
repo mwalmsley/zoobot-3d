@@ -26,67 +26,6 @@ from galaxy_datasets import transforms
 import gz3d_pytorch_model, pytorch_datamodule
 
 
-def desi_and_gz2_schema():
-
-
-    question_answer_pairs = {}
-    question_answer_pairs.update(label_metadata.decals_all_campaigns_ortho_pairs)
-    question_answer_pairs.update(label_metadata.gz2_ortho_pairs)
-
-    dependencies = {}
-    dependencies.update(label_metadata.decals_ortho_dependencies)
-    dependencies.update(label_metadata.gz2_ortho_dependencies)
-
-    # print(question_answer_pairs)
-    # print(dependencies)
-
-    schema = schemas.Schema(question_answer_pairs, dependencies)
-
-    return schema
-
-
-# lazy copy of the below, but with additional_targets=
-# https://github.com/mwalmsley/galaxy-datasets/blob/main/galaxy_datasets/transforms.py#L6
-def default_segmentation_transforms(
-    crop_scale_bounds=(0.7, 0.8),
-    crop_ratio_bounds=(0.9, 1.1),
-    resize_after_crop=224, 
-    pytorch_greyscale=False
-    ) -> typing.Dict[str, typing.Any]:
-
-    transforms_to_apply = [
-        A.Lambda(name="RemoveAlpha", image=transforms.RemoveAlpha(), always_apply=True)
-    ]
-
-    if pytorch_greyscale:
-        transforms_to_apply += [
-            A.Lambda(
-                name="ToGray", image=transforms.ToGray(reduce_channels=True), always_apply=True
-            )
-        ]
-
-    transforms_to_apply += [
-        A.Rotate(limit=180, interpolation=1,
-                    always_apply=True, border_mode=0, value=0),
-        A.RandomResizedCrop(
-            height=resize_after_crop,  # after crop resize
-            width=resize_after_crop,
-            scale=crop_scale_bounds,  # crop factor
-            ratio=crop_ratio_bounds,  # crop aspect ratio
-            interpolation=1,
-            always_apply=True
-        ),  # new aspect ratio
-        A.VerticalFlip(p=0.5),
-        # new here, for the byte masks
-        A.ToFloat(max_value=255.),
-        ToTensorV2()  # channels first, torch convention
-    ]
-
-    return A.Compose(
-        transforms_to_apply,
-        additional_targets={'spiral_mask': 'image', 'bar_mask': 'image'}
-    )
-
 
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 def train(config : DictConfig) -> None:
@@ -258,6 +197,67 @@ def get_jpg_loc(row, base_dir):
     else:
         return base_dir + row['relative_desi_jpg_loc']
 
+
+def desi_and_gz2_schema():
+
+
+    question_answer_pairs = {}
+    question_answer_pairs.update(label_metadata.decals_all_campaigns_ortho_pairs)
+    question_answer_pairs.update(label_metadata.gz2_ortho_pairs)
+
+    dependencies = {}
+    dependencies.update(label_metadata.decals_ortho_dependencies)
+    dependencies.update(label_metadata.gz2_ortho_dependencies)
+
+    # print(question_answer_pairs)
+    # print(dependencies)
+
+    schema = schemas.Schema(question_answer_pairs, dependencies)
+
+    return schema
+
+
+# lazy copy of the below, but with additional_targets=
+# https://github.com/mwalmsley/galaxy-datasets/blob/main/galaxy_datasets/transforms.py#L6
+def default_segmentation_transforms(
+    crop_scale_bounds=(0.7, 0.8),
+    crop_ratio_bounds=(0.9, 1.1),
+    resize_after_crop=224, 
+    pytorch_greyscale=False
+    ) -> typing.Dict[str, typing.Any]:
+
+    transforms_to_apply = [
+        A.Lambda(name="RemoveAlpha", image=transforms.RemoveAlpha(), always_apply=True)
+    ]
+
+    if pytorch_greyscale:
+        transforms_to_apply += [
+            A.Lambda(
+                name="ToGray", image=transforms.ToGray(reduce_channels=True), always_apply=True
+            )
+        ]
+
+    transforms_to_apply += [
+        A.Rotate(limit=180, interpolation=1,
+                    always_apply=True, border_mode=0, value=0),
+        A.RandomResizedCrop(
+            height=resize_after_crop,  # after crop resize
+            width=resize_after_crop,
+            scale=crop_scale_bounds,  # crop factor
+            ratio=crop_ratio_bounds,  # crop aspect ratio
+            interpolation=1,
+            always_apply=True
+        ),  # new aspect ratio
+        A.VerticalFlip(p=0.5),
+        # new here, for the byte masks
+        A.ToFloat(max_value=255.),
+        ToTensorV2()  # channels first, torch convention
+    ]
+
+    return A.Compose(
+        transforms_to_apply,
+        additional_targets={'spiral_mask': 'image', 'bar_mask': 'image'}
+    )
 
 if __name__ == '__main__':
 
