@@ -89,7 +89,7 @@ def default_segmentation_transforms(
 
 
 @hydra.main(version_base=None, config_path="conf", config_name="config")
-def main(config : DictConfig) -> None:
+def train(config : DictConfig) -> None:
 
     pl.seed_everything(config.random_state)
 
@@ -263,19 +263,20 @@ if __name__ == '__main__':
 
 
     logging.basicConfig(level=logging.INFO)
+    train()
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--save-dir', dest='save_dir', default='results/models', type=str)
-    parser.add_argument('--max-galaxies', dest='max_galaxies', default=None, type=int)
-    parser.add_argument('--gz3d-galaxies-only', dest='gz3d_galaxies_only', default=False, action='store_true')
-    parser.add_argument('--spiral-galaxies-only', dest='spiral_galaxies_only', default=False, action='store_true')
-    parser.add_argument('--use-vote-loss', dest='use_vote_loss', default=False, action='store_true')
-    parser.add_argument('--use-seg-loss', dest='use_seg_loss', default=False, action='store_true')
-    parser.add_argument('--seg-loss-weighting', dest='seg_loss_weighting', default=100., type=float)
-    parser.add_argument('--oversampling', dest='oversampling_ratio', default=1, type=int)
-    parser.add_argument('--debug', dest='debug',
-                        default=False, action='store_true')
-    parser.add_argument('--seed', dest='random_state', default=42, type=int)
-    args = parser.parse_args()
+#     parser = argparse.ArgumentParser()
+#     parser.add_argument('--save-dir', dest='save_dir', default='results/models', type=str)
+#     parser.add_argument('--max-galaxies', dest='max_galaxies', default=None, type=int)
+#     parser.add_argument('--gz3d-galaxies-only', dest='gz3d_galaxies_only', default=False, action='store_true')
+#     parser.add_argument('--spiral-galaxies-only', dest='spiral_galaxies_only', default=False, action='store_true')
+#     parser.add_argument('--use-vote-loss', dest='use_vote_loss', default=False, action='store_true')
+#     parser.add_argument('--use-seg-loss', dest='use_seg_loss', default=False, action='store_true')
+#     parser.add_argument('--seg-loss-weighting', dest='seg_loss_weighting', default=100., type=float)
+#     parser.add_argument('--oversampling', dest='oversampling_ratio', default=1, type=int)
+#     parser.add_argument('--debug', dest='debug',
+#                         default=False, action='store_true')
+#     parser.add_argument('--seed', dest='random_state', default=42, type=int)
+#     args = parser.parse_args()
 
-    main(args)
+#     main(args)
