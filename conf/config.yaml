@@ -20,7 +20,7 @@ num_workers: 20
 accelerator: gpu
 devices: 1
 precision: 16-mixed
-strategy: auto
+strategy: null
 
 schema_name: 'desi_dr5'
 
