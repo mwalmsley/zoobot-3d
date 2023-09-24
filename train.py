@@ -76,32 +76,18 @@ def train(config : omegaconf.DictConfig) -> None:
 
     # df = pd.read_parquet(base_dir + 'data/gz3d_and_gz_desi_master_catalog.parquet')
     df = pd.read_parquet(base_dir + 'data/gz3d_and_desi_master_catalog.parquet')  # now includes GZ2 also
-    if config.spiral_galaxies_only:
-        # these are PREDICTED fractions, hence no _dr12, _gz2, etc
-        # consistent across GZ2/DESI (nice)
-        df = df[df['smooth-or-featured_featured-or-disk_fraction'] > 0.5]
-        df = df[df['disk-edge-on_yes_fraction'] < 0.5]
-        df = df[df['has-spiral-arms_yes_fraction'] > 0.5]
 
     logging.info(df['relative_spiral_mask_loc'].iloc[0])
 
     # adjust paths for base_dir
     df['spiral_mask_loc'] = df['relative_spiral_mask_loc'].astype(str).apply(lambda x: base_dir + x)
     df['bar_mask_loc'] = df['relative_bar_mask_loc'].astype(str).apply(lambda x: base_dir + x)
-
-    # df['relative_desi_jpg_loc'] = df['relative_desi_jpg_loc'].astype(str)
     df['desi_jpg_loc'] = df.apply(lambda x: get_jpg_loc(x, base_dir), axis=1)
-    # print(df['relative_desi_jpg_loc'].sample(5))
-    # print(df['desi_jpg_loc'].sample(5))
-
     logging.info(df['spiral_mask_loc'].iloc[0])
 
     logging.info('Check paths')
-    # TODO should precalculate
+    # TODO could precalculate
     df['spiral_mask_exists'] = df['spiral_mask_loc'].apply(os.path.isfile)
-    if config.gz3d_galaxies_only:
-        df = df.query('spiral_mask_exists')
-        assert len(df) > 0
 
     # hide votes for galaxies with masks
     logging.info(df[df['spiral_mask_exists']][schema.label_cols[0]])
@@ -116,9 +102,26 @@ def train(config : omegaconf.DictConfig) -> None:
         df = df[:config.max_galaxies]
         logging.info(f'Galaxies after cut: {len(df)}')
 
-    
     train_catalog, hidden_catalog = train_test_split(df, test_size=0.3, random_state=config.random_state)
     val_catalog, test_catalog = train_test_split(hidden_catalog, test_size=0.2/0.3, random_state=config.random_state)
+
+    # new
+    # we will ALWAYS evaluate (val/test) ONLY on ALL GZ3D galaxies with spiral masks
+    # only the train data ever changes
+    val_catalog = val_catalog.query('spiral_mask_exists')
+    test_catalog = test_catalog.query('spiral_mask_exists')
+
+    if config.spiral_galaxies_only:
+        # these are PREDICTED fractions, hence no _dr12, _gz2, etc
+        # consistent across GZ2/DESI (nice)
+        is_predicted_feat = train_df['smooth-or-featured_featured-or-disk_fraction'] > 0.5
+        is_predicted_face = train_df['disk-edge-on_yes_fraction'] < 0.5
+        is_predicted_spiral = train_df['has-spiral-arms_yes_fraction'] > 0.5
+        # always keep the spiral masked galaxies, regardless
+        train_df = train_df[(is_predicted_feat & is_predicted_face & is_predicted_spiral) | (train_df['spiral_mask_exists'])]
+    if config.gz3d_galaxies_only:
+        train_df = train_df.query('spiral_mask_exists')
+        assert len(train_df) > 0
 
     log_every_n_steps = min(int(len(train_catalog) / config.batch_size), 100)
 

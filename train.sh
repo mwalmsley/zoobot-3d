@@ -20,4 +20,4 @@ PYTHON=/share/nas2/walml/miniconda3/envs/zoobot38_torch/bin/python
 
 SAVE_DIR=/share/nas2/walml/repos/zoobot-3d/results/models
 
-srun $PYTHON /share/nas2/walml/repos/zoobot-3d/train.py debug=True
+srun $PYTHON /share/nas2/walml/repos/zoobot-3d/train.py $HYDRA_OVERRIDES
