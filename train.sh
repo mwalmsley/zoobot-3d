@@ -13,9 +13,11 @@ pwd; hostname; date
 
 nvidia-smi
 
-export NCCL_DEBUG=INFO
-export PYTORCH_KERNEL_CACHE_PATH=/share/nas2/walml/.cache/torch/kernels
+PYTHON=/share/nas2/walml/miniconda3/envs/zoobot38_torch/bin/python
 
-SAVE_DIR=/share/nas2/walml/repos/zoobot-3d/results/models/train_$RANDOM
-srun /share/nas2/walml/miniconda3/envs/zoobot38_torch/bin/python /share/nas2/walml/repos/zoobot-3d/train.py --save-dir $SAVE_DIR
-# srun /share/nas2/walml/miniconda3/envs/zoobot38_torch/bin/python /share/nas2/walml/repos/zoobot-3d/train.py --save-dir $SAVE_DIR --debug
+# export NCCL_DEBUG=INFO
+# export PYTORCH_KERNEL_CACHE_PATH=/share/nas2/walml/.cache/torch/kernels
+
+SAVE_DIR=/share/nas2/walml/repos/zoobot-3d/results/models
+
+srun $PYTHON /share/nas2/walml/repos/zoobot-3d/train.py debug=True

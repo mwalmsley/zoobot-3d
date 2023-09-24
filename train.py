@@ -3,6 +3,11 @@ import os
 import logging
 import argparse
 
+from omegaconf import DictConfig
+import hydra
+# https://hydra.cc/docs/configure_hydra/intro/#accessing-the-hydra-config
+from hydra.core.hydra_config import HydraConfig
+
 import torch
 import pandas as pd
 import pytorch_lightning as pl
@@ -83,20 +88,12 @@ def default_segmentation_transforms(
     )
 
 
-def main():
+@hydra.main(version_base=None, config_path="conf", config_name="config")
+def main(config : DictConfig) -> None:
 
+    pl.seed_everything(config.random_state)
 
-
-    logging.basicConfig(level=logging.INFO)
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--save-dir', dest='save_dir', default='results/models', type=str)
-    parser.add_argument('--debug', dest='debug',
-                        default=False, action='store_true')
-    parser.add_argument('--seed', dest='random_state', default=42, type=int)
-    args = parser.parse_args()
-
-    pl.seed_everything(args.random_state)
+    save_dir = HydraConfig.get().run.dir
 
     on_local = os.path.isdir('/Users/user/')
     if on_local:
@@ -104,82 +101,40 @@ def main():
     else:
         base_dir = '/share/nas2/walml/galaxy_zoo/segmentation/'
 
-    debug = args.debug
+    debug = config.debug
     if debug or on_local:
-        max_galaxies = 500
-        gz3d_galaxies_only = True
-        spiral_galaxies_only = True
-        oversampling_ratio = 1
-        max_epochs = 2
-        patience = 2
-        image_size = 128
-        batch_size = 32
-        num_workers = 1
-        accelerator = 'cpu'
-        precision = '32-true'
-        log_every_n_steps = 10
-        devices = 'auto'
-        strategy = 'auto'
-    else:
-        max_galaxies = None
-        # gz3d_galaxies_only = True
-        gz3d_galaxies_only = False
-        # spiral_galaxies_only = False
-        spiral_galaxies_only = True
-        oversampling_ratio = 10
-        # oversampling_ratio = 1
-        log_every_n_steps = 100
-        # log_every_n_steps = 9
-        max_epochs = 1000
-        # patience = 50
-        patience = 10
-        image_size = 224
-        batch_size = 256  # 2xA100 at mixed precision
-        num_workers = 12
-        accelerator = 'gpu'
-        devices = 1
-        strategy = 'auto'
-        # devices = 2
-        # strategy = 'ddp'
-        # just in case of ddp weirdness
-        # since I'm not using the second GPU anyway
-        precision = '16-mixed'
+        config.max_galaxies = 500
+        config.gz3d_galaxies_only = True
+        config.spiral_galaxies_only = True
+        config.oversampling_ratio = 1
+        config.max_epochs = 2
+        config.patience = 2
+        config.image_size = 128
+        config.batch_size = 32
+        config.num_workers = 1
+        config.accelerator = 'cpu'
+        config.precision = '32-true'
+        config.devices = 'auto'
+        config.strategy = 'auto'
         
         torch.set_float32_matmul_precision('medium')
 
-    seg_loss_weighting = 100
-    # seg_loss_weighting = 0  # TODO warning
-    # loss_to_monitor = 'validation/epoch_total_loss:0'
-    loss_to_monitor = 'validation/epoch_seg_loss:0'
-    # schema = desi_and_gz2_schema()
-    schema = schemas.decals_all_campaigns_ortho_schema
-    # schema = schemas.decals_dr5_ortho_schema  # new - just DR5
- 
-    config = {
-        'debug': debug,
-        'max_epochs': max_epochs,
-        'patience': patience,
-        'image_size': image_size,
-        'seg_loss_weighting': seg_loss_weighting,
-        'max_galaxies': max_galaxies,
-        'batch_size': batch_size,
-        'num_workers': num_workers,
-        'accelerator': accelerator,
-        'devices': devices,
-        'precision': precision,
-        'strategy': strategy,
-        'gz3d_galaxies_only': gz3d_galaxies_only,
-        'spiral_galaxies_only': spiral_galaxies_only,
-        'oversampling_ratio': oversampling_ratio,
-        'loss_to_monitor': loss_to_monitor
-    }
+    if config.schema_name == 'desi_dr5':
+        schema = schemas.decals_dr5_ortho_schema  # new - just DR5
+    elif config.schema_name == 'desi_all':
+        schema = schemas.decals_all_campaigns_ortho_schema
+    elif config.schema_name == 'desi_and_gz2':
+        schema = desi_and_gz2_schema()
+    else:
+        raise ValueError(config.schema_name)
+
     wandb_logger = WandbLogger(project='zoobot-3d', log_model=False, config=config)
     wandb.init(project='merger', config=config)  # args will be ignored by existing logger
-    wandb_config = wandb.config
+    config = wandb.config
 
     # df = pd.read_parquet(base_dir + 'data/gz3d_and_gz_desi_master_catalog.parquet')
     df = pd.read_parquet(base_dir + 'data/gz3d_and_desi_master_catalog.parquet')  # now includes GZ2 also
-    if wandb_config.spiral_galaxies_only:
+    if config.spiral_galaxies_only:
         # these are PREDICTED fractions, hence no _dr12, _gz2, etc
         # consistent across GZ2/DESI (nice)
         df = df[df['smooth-or-featured_featured-or-disk_fraction'] > 0.5]
@@ -202,7 +157,7 @@ def main():
     logging.info('Check paths')
     # TODO should precalculate
     df['spiral_mask_exists'] = df['spiral_mask_loc'].apply(os.path.isfile)
-    if wandb_config.gz3d_galaxies_only:
+    if config.gz3d_galaxies_only:
         df = df.query('spiral_mask_exists')
         assert len(df) > 0
 
@@ -215,33 +170,33 @@ def main():
 
     logging.info(f'Galaxies in catalog: {len(df)}')
 
-    if wandb_config.max_galaxies is not None:
-        df = df[:max_galaxies]
+    if config.max_galaxies is not None:
+        df = df[:config.max_galaxies]
         logging.info(f'Galaxies after cut: {len(df)}')
 
     
     train_catalog, hidden_catalog = train_test_split(df, test_size=0.3, random_state=args.random_state)
     val_catalog, test_catalog = train_test_split(hidden_catalog, test_size=0.2/0.3, random_state=args.random_state)
 
-    
+    log_every_n_steps = min(int(len(train_catalog) / config.batch_size), 100)
 
     # oversampling
-    if wandb_config.oversampling_ratio > 1:
+    if config.oversampling_ratio > 1:
         logging.info('Using oversampling')
         spiral_masked_galaxies = train_catalog[train_catalog['spiral_mask_exists']]
         train_catalog = pd.concat(
-            [train_catalog] + [spiral_masked_galaxies]*(wandb_config.oversampling_ratio-1)
+            [train_catalog] + [spiral_masked_galaxies]*(config.oversampling_ratio-1)
         )
         # and shuffle again
         train_catalog = train_catalog.sample(frac=1, random_state=args.random_state).reset_index(drop=True)
 
     
     model = gz3d_pytorch_model.ZooBot3D(
-        input_size=wandb_config.image_size,
+        input_size=config.image_size,
         n_classes=2,  # spiral segmap, bar segmap
         output_dim=len(schema.label_cols),
         question_index_groups=schema.question_index_groups,
-        seg_loss_weighting=wandb_config.seg_loss_weighting
+        seg_loss_weighting=config.seg_loss_weighting
     )
 
     datamodule = pytorch_datamodule.SegmentationDataModule(
@@ -249,38 +204,38 @@ def main():
         val_catalog=val_catalog,
         test_catalog=test_catalog,
         label_cols=schema.label_cols,
-        batch_size=wandb_config.batch_size,
-        num_workers=wandb_config.num_workers,
-        transform=default_segmentation_transforms(resize_after_crop=wandb_config.image_size)
+        batch_size=config.batch_size,
+        num_workers=config.num_workers,
+        transform=default_segmentation_transforms(resize_after_crop=config.image_size)
     )
     datamodule.setup('fit')
 
     callbacks = [
         EarlyStopping(
-            monitor=wandb_config.loss_to_monitor,
-            patience=wandb_config.patience,
+            monitor=config.loss_to_monitor,
+            patience=config.patience,
             check_finite=True,
             verbose=True
         ),
-        ModelCheckpoint(dirpath=args.save_dir, monitor=wandb_config.loss_to_monitor)
+        ModelCheckpoint(dirpath=save_dir, monitor=config.loss_to_monitor)
     ]
     # use this obj so we can log the string above
-    if wandb_config.strategy == 'ddp':
+    if config.strategy == 'ddp':
         logging.info('Using DDP strategy')
         
         strategy_obj = DDPStrategy(
-            accelerator=wandb_config.accelerator,
-            parallel_devices=[torch.device(f"cuda:{i}") for i in range(wandb_config.devices)],
+            accelerator=config.accelerator,
+            parallel_devices=[torch.device(f"cuda:{i}") for i in range(config.devices)],
             find_unused_parameters=True
         )
     else:
-        strategy_obj = strategy
+        strategy_obj = config.strategy
 
     trainer = pl.Trainer(
-        # accelerator=wandb_config.accelerator,
-        # devices=wandb_config.devices,
-        max_epochs=wandb_config.max_epochs,
-        precision=wandb_config.precision,
+        # accelerator=config.accelerator,
+        # devices=config.devices,
+        max_epochs=config.max_epochs,
+        precision=config.precision,
         logger=wandb_logger,
         log_every_n_steps=log_every_n_steps,
         strategy=strategy_obj,
@@ -304,4 +259,21 @@ def get_jpg_loc(row, base_dir):
 
 if __name__ == '__main__':
 
-    main()
+
+    logging.basicConfig(level=logging.INFO)
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--save-dir', dest='save_dir', default='results/models', type=str)
+    parser.add_argument('--max-galaxies', dest='max_galaxies', default=None, type=int)
+    parser.add_argument('--gz3d-galaxies-only', dest='gz3d_galaxies_only', default=False, action='store_true')
+    parser.add_argument('--spiral-galaxies-only', dest='spiral_galaxies_only', default=False, action='store_true')
+    parser.add_argument('--use-vote-loss', dest='use_vote_loss', default=False, action='store_true')
+    parser.add_argument('--use-seg-loss', dest='use_seg_loss', default=False, action='store_true')
+    parser.add_argument('--seg-loss-weighting', dest='seg_loss_weighting', default=100., type=float)
+    parser.add_argument('--oversampling', dest='oversampling_ratio', default=1, type=int)
+    parser.add_argument('--debug', dest='debug',
+                        default=False, action='store_true')
+    parser.add_argument('--seed', dest='random_state', default=42, type=int)
+    args = parser.parse_args()
+
+    main(args)
