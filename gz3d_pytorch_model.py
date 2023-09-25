@@ -334,6 +334,7 @@ class pytorch_decoder_module(nn.Module):
 
         self.final_conv = nn.Sequential(ConvBlock(in_out[0][1], in_out[0][0]),
             nn.Mish(),
+            # one output filter per class, stride of 1
             nn.Conv2d(in_out[0][0], n_classes, 1, padding='same'),
             nn.ReLU(),
         )
