@@ -120,8 +120,8 @@ class ZooBot3D(define_model.GenericLightningModule):
                 # optional extra logging
                 self.log(f'{step_name}/epoch_vote_loss:0', multiq_loss_reduced, on_epoch=True, on_step=False, sync_dist=True)
                 # self.log_loss_per_question(multiq_loss, prefix=step_name)
-            else:
-                raise ValueError(batch['label_cols'])
+            # else:
+                # logging.warning('No votes in batch, skipping seg loss')
 
         if self.use_seg_loss:
             # we will always have 'spiral' and 'bar_mask' batch keys, else batch elements wouldn't be stackable
