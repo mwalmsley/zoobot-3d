@@ -133,7 +133,8 @@ class ZooBot3D(define_model.GenericLightningModule):
             # set nan where seg map max is 0 i.e. no seg labels
 
             # has_maps is shape (batch, 2). True where segmap exists
-            has_maps = torch.sum(seg_maps, dim=(2, 3)) > 0
+            # has_maps = torch.sum(seg_maps, dim=(2, 3)) > 0
+            has_maps = torch.sum(seg_maps[:, 0], dim=(1, 2)) > 0
             if torch.sum(has_maps) > 0:
                 # for now, spiral loss only (dim 1 index 0), for simplicity
                 seg_loss = self.seg_loss(seg_maps[has_maps, 0], pred_maps[has_maps, 0], reduction='none') 
