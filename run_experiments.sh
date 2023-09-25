@@ -17,7 +17,7 @@
 # sbatch train.sh "oversampling_ratio=1 use_vote_loss=False use_seg_loss=True gz3d_galaxies_only=True"
 
 # use both losses
-# sbatch train.sh "oversampling_ratio=1 use_vote_loss=True use_seg_loss=True"
+sbatch train.sh "oversampling_ratio=1 use_vote_loss=True use_seg_loss=True seg_loss_weighting=100" 
 
 # add oversampling
 # sbatch train.sh "oversampling_ratio=10 use_vote_loss=True use_seg_loss=True"
@@ -27,4 +27,4 @@
 
 # sbatch train.sh "oversampling_ratio=1 use_vote_loss=True use_seg_loss=False loss_to_monitor=validation/epoch_vote_loss:0"
 
-sbatch train.sh "oversampling_ratio=1 use_vote_loss=True use_seg_loss=False loss_to_monitor=validation/epoch_vote_loss:0 use_dummy_encoder=True"
+# sbatch train.sh "oversampling_ratio=1 use_vote_loss=True use_seg_loss=False loss_to_monitor=validation/epoch_vote_loss:0 use_dummy_encoder=True"
