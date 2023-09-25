@@ -11,13 +11,13 @@
 # sbatch train.sh debug=True
 
 # use seg loss only
-# sbatch train.sh "oversampling_ratio=1 use_vote_loss=False use_seg_loss=True seg_loss_weighting=100"
+sbatch train.sh "oversampling_ratio=1 use_vote_loss=False use_seg_loss=True seg_loss_weighting=100"
 
 # as above, but gz3d only (as even simpler baseline)
 # sbatch train.sh "oversampling_ratio=1 use_vote_loss=False use_seg_loss=True gz3d_galaxies_only=True"
 
 # use both losses
-sbatch train.sh "oversampling_ratio=1 use_vote_loss=True use_seg_loss=True seg_loss_weighting=100" 
+# sbatch train.sh "oversampling_ratio=1 use_vote_loss=True use_seg_loss=True seg_loss_weighting=100" 
 
 # add oversampling
 # sbatch train.sh "oversampling_ratio=10 use_vote_loss=True use_seg_loss=True"
