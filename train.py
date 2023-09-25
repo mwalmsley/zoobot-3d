@@ -97,6 +97,7 @@ def train(config : omegaconf.DictConfig) -> None:
     logging.info(df[df['spiral_mask_exists']][schema.label_cols[0]])
 
     # for all datasets, only select galaxies with either spiral masks OR votes
+    # (this should be all of them as I outer joined with the vote catalog)
     has_votes = df[schema.label_cols].sum(axis=1) > 0
     df = df[df['spiral_mask_exists'] | has_votes].reset_index(drop=True)
 

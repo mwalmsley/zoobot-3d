@@ -110,15 +110,18 @@ class ZooBot3D(define_model.GenericLightningModule):
 
         if self.use_vote_loss:
             # self.loss_func returns shape of (galaxy, question), mean to ()
-            
+            # dim=1 is the question dim, so sum over that
             has_votes = torch.sum(batch['label_cols'], dim=1) > 0
-            multiq_loss = self.dirichlet_loss(pred_labels[has_votes], batch['label_cols'][has_votes], sum_over_questions=False)
-            multiq_loss_reduced = torch.mean(multiq_loss)
-            loss += multiq_loss_reduced
-
-            # optional extra logging
-            self.log(f'{step_name}/epoch_vote_loss:0', multiq_loss_reduced, on_epoch=True, on_step=False, sync_dist=True)
-            # self.log_loss_per_question(multiq_loss, prefix=step_name)
+            if torch.sum(has_votes) > 0:  # no dim, any 
+                # should always be true
+                multiq_loss = self.dirichlet_loss(pred_labels[has_votes], batch['label_cols'][has_votes], sum_over_questions=False)
+                multiq_loss_reduced = torch.mean(multiq_loss)
+                loss += multiq_loss_reduced
+                # optional extra logging
+                self.log(f'{step_name}/epoch_vote_loss:0', multiq_loss_reduced, on_epoch=True, on_step=False, sync_dist=True)
+                # self.log_loss_per_question(multiq_loss, prefix=step_name)
+            else:
+                raise ValueError(torch.batch['label_cols'])
 
         if self.use_seg_loss:
             # we will always have 'spiral' and 'bar_mask' batch keys, else batch elements wouldn't be stackable
@@ -126,18 +129,19 @@ class ZooBot3D(define_model.GenericLightningModule):
             # each seg map, if in the batch dict, is called e.g. spiral_mask, bar_mask, etc
             # masks are input as (batch, 1, 128, 128), where 1st dim is (dummy) channel
             # concat as (batch, map_index, 128, 128), where 1st dim is now map index
-            seg_loss = self.seg_loss(seg_maps, pred_maps, reduction='none')  # shape (batch, map_index, 128, 128)]
             # set nan where seg map max is 0 i.e. no seg labels
             # missing_maps is shape (batch, 2). True where segmap missing
-            missing_maps = torch.amax(seg_maps, dim=(2, 3)) == 0
-            seg_loss[missing_maps] = torch.nan
-            seg_loss_reduced = torch.nanmean(seg_loss)
-            seg_loss_reduced = torch.nan_to_num(seg_loss_reduced)  # will still be nan if NO masks at all in batch
-            loss += self.seg_loss_weighting * seg_loss_reduced
+            has_maps = torch.sum(seg_maps, dim=(2, 3)) > 0
+            if torch.sum(has_maps) > 0:
+                seg_loss = self.seg_loss(seg_maps[has_maps], pred_maps[has_maps], reduction='none')  # shape (batch, map_index, 128, 128)]
+                seg_loss_reduced = torch.mean(seg_loss)
+                loss += self.seg_loss_weighting * seg_loss_reduced
 
-            # optional extra logging (okay the first one is v. handy for early stopping, not optional really)
-            self.log(f'{step_name}/epoch_seg_loss:0', seg_loss_reduced, on_epoch=True, on_step=False, sync_dist=True)
-            self.log_loss_per_seg_map_name(seg_loss, prefix=step_name)
+                # optional extra logging (okay the first one is v. handy for early stopping, not optional really)
+                self.log(f'{step_name}/epoch_seg_loss:0', seg_loss_reduced, on_epoch=True, on_step=False, sync_dist=True)
+                self.log_loss_per_seg_map_name(seg_loss, prefix=step_name)
+            else:
+                logging.warning('No seg maps in batch, skipping seg loss')
 
         self.log(f'{step_name}/epoch_total_loss:0', loss, on_epoch=True, on_step=False, sync_dist=True)
 
