@@ -181,7 +181,7 @@ class ZooBot3D(define_model.GenericLightningModule):
             # https://docs.wandb.ai/guides/integrations/lightning#log-images-text-and-more
             # https://github.com/Lightning-AI/lightning/discussions/6723 
             self.trainer.logger.experiment.log(
-                {f"{step_name}/{mask_name}_galaxy_image": galaxy_image},
+                {f"{step_name}_images/{mask_name}_galaxy_image": galaxy_image},
                 step=self.global_step
             )
 
@@ -189,7 +189,7 @@ class ZooBot3D(define_model.GenericLightningModule):
                 torchvision.utils.make_grid(outputs['predicted_maps'][has_mask][:max_images, mask_index:mask_index+1]),
             )    
             self.trainer.logger.experiment.log(
-                {f"{step_name}/{mask_name}_mask_predicted": predicted_mask_image},
+                {f"{step_name}_images/{mask_name}_mask_predicted": predicted_mask_image},
                 step=self.global_step
             )
 
@@ -197,7 +197,7 @@ class ZooBot3D(define_model.GenericLightningModule):
                 torchvision.utils.make_grid(outputs[f'{mask_name}_mask'][has_mask][:max_images]),
             )    
             self.trainer.logger.experiment.log(
-                {f"{step_name}/{mask_name}_mask_true": true_mask_image},
+                {f"{step_name}_images/{mask_name}_mask_true": true_mask_image},
                 step=self.global_step
             )
 
