@@ -1,8 +1,11 @@
+import logging
+
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.path import Path
 from shapely.geometry import LineString
 from PIL import Image
+
 
 
 def construct_segmap_image(galaxy, marks_by_users):
@@ -21,7 +24,17 @@ def construct_segmap_image(galaxy, marks_by_users):
     if mask.max() == 0:  # empty mask :(
         mask_im = Image.fromarray(np.zeros((manga_segmap_dim, manga_segmap_dim)).astype(np.uint8))
     else:
-        mask_im = Image.fromarray((255*mask/mask.max()).astype(np.uint8))
+        # mask_im = Image.fromarray((255*mask/mask.max()).astype(np.uint8))
+        # don't just normalise by mask.max(), because this is affected by num. intersections
+        # instead, normalise by fraction of volunteers who made marks
+        """
+        num marking / num asked to mark (always 15)
+        """
+        num_users = len(marks_by_users)
+        if not num_users == 15:
+            logging.warning(galaxy['segmap_json_loc'])
+        # mask is initially from 0 to AT MOST 15, divide by 15 to get to 0 to 1
+        mask_im = Image.fromarray((255*mask/num_users).astype(np.uint8))
 
     # align to DESI FoV
 
