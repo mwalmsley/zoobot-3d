@@ -50,7 +50,7 @@ def train(config : omegaconf.DictConfig) -> None:
         config.patience = 2
         config.image_size = 128
         config.batch_size = 32
-        config.num_workers = 1
+        config.num_workers = 4
         config.accelerator = 'cpu'
         config.precision = '32-true'
         config.devices = 1
