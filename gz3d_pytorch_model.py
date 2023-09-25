@@ -131,16 +131,19 @@ class ZooBot3D(define_model.GenericLightningModule):
             # masks are input as (batch, 1, 128, 128), where 1st dim is (dummy) channel
             # concat as (batch, map_index, 128, 128), where 1st dim is now map index
             # set nan where seg map max is 0 i.e. no seg labels
-            # missing_maps is shape (batch, 2). True where segmap missing
+
+            # has_maps is shape (batch, 2). True where segmap exists
             has_maps = torch.sum(seg_maps, dim=(2, 3)) > 0
             if torch.sum(has_maps) > 0:
-                seg_loss = self.seg_loss(seg_maps[has_maps], pred_maps[has_maps], reduction='none')  # shape (batch, map_index, 128, 128)]
+                # for now, spiral loss only (dim 1 index 0), for simplicity
+                seg_loss = self.seg_loss(seg_maps[has_maps, 0], pred_maps[has_maps, 0], reduction='none') 
+                # seg loss has shape (batch, map_index, 128, 128)]
                 seg_loss_reduced = torch.mean(seg_loss)
                 loss += self.seg_loss_weighting * seg_loss_reduced
 
                 # optional extra logging (okay the first one is v. handy for early stopping, not optional really)
                 self.log(f'{step_name}/epoch_seg_loss:0', seg_loss_reduced, on_epoch=True, on_step=False, sync_dist=True)
-                self.log_loss_per_seg_map_name(seg_loss, prefix=step_name)
+                # self.log_loss_per_seg_map_name(seg_loss, prefix=step_name)
             else:
                 logging.warning('No seg maps in batch, skipping seg loss')
 
