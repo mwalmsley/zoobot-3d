@@ -107,6 +107,7 @@ class ZooBot3D(define_model.GenericLightningModule):
     def calculate_and_log_loss(self, predictions, batch, step_name):
         pred_labels, pred_maps = predictions
         
+        loss = 0
 
         if self.use_vote_loss:
             # self.loss_func returns shape of (galaxy, question), mean to ()
@@ -122,8 +123,8 @@ class ZooBot3D(define_model.GenericLightningModule):
             self.log(f'{step_name}/epoch_vote_loss:0', multiq_loss_reduced, on_epoch=True, on_step=False, sync_dist=True)
             # self.log_loss_per_question(multiq_loss, prefix=step_name)
             
+            loss += multiq_loss_reduced
 
-                # logging.warning('No votes in batch, skipping seg loss')
 
         if self.use_seg_loss:
             # we will always have 'spiral' and 'bar_mask' batch keys, else batch elements wouldn't be stackable
@@ -149,7 +150,8 @@ class ZooBot3D(define_model.GenericLightningModule):
                 # logging.warning('No seg maps in batch, skipping seg loss')
                 seg_loss_reduced = 0
 
-        loss = multiq_loss_reduced + self.seg_loss_weighting * seg_loss_reduced
+            loss += self.seg_loss_weighting * seg_loss_reduced
+
         self.log(f'{step_name}/epoch_total_loss:0', loss, on_epoch=True, on_step=False, sync_dist=True)
 
         return loss

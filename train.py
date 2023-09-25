@@ -88,10 +88,13 @@ def train(config : omegaconf.DictConfig) -> None:
     logging.info('Check paths')
     # TODO could precalculate
     df['spiral_mask_exists'] = df['spiral_mask_loc'].apply(os.path.isfile)
+    assert any(df['spiral_mask_exists'])
 
     # for all datasets, only select galaxies with either spiral masks OR votes
     # (this should be all of them as I outer joined with the vote catalog)
     has_votes = df[schema.label_cols].sum(axis=1) > 0
+    if not any(has_votes):
+        logging.warning('No galaxies with votes found')
     df = df[df['spiral_mask_exists'] | has_votes].reset_index(drop=True)
 
     logging.info(f'Galaxies in catalog: {len(df)}')
@@ -121,6 +124,8 @@ def train(config : omegaconf.DictConfig) -> None:
         train_catalog = train_catalog.query('spiral_mask_exists')
         assert len(train_catalog) > 0
 
+    logging.info(f'Final train catalog, before oversampling: {len(train_catalog)}')
+
     # for train catalog, also hide votes for galaxies with masks
     # keep them for val/test to see if we can predict them
     # logging.info(df[df['spiral_mask_exists']][schema.label_cols[0]])
@@ -131,16 +136,19 @@ def train(config : omegaconf.DictConfig) -> None:
 
 
     log_every_n_steps = min(int(len(train_catalog) / config.batch_size), 100)
+    logging.info(f'Logging every {log_every_n_steps} steps')
 
     # oversampling
     if config.oversampling_ratio > 1:
         logging.info('Using oversampling')
+        logging.info('Spiral mask fraction before: ' + str(train_catalog['spiral_mask_exists'].mean()))
         spiral_masked_galaxies = train_catalog[train_catalog['spiral_mask_exists']]
         train_catalog = pd.concat(
             [train_catalog] + [spiral_masked_galaxies]*(config.oversampling_ratio-1)
         )
         # and shuffle again
         train_catalog = train_catalog.sample(frac=1, random_state=config.random_state).reset_index(drop=True)
+        logging.info('Spiral mask fraction after: ' + str(train_catalog['spiral_mask_exists'].mean()))
 
     if config.use_dummy_encoder:
         logging.warning('Using zoobot encoder')
