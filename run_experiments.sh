@@ -25,4 +25,6 @@
 # as above, extra oversampling, and not filtering out non-feat galaxies
 # sbatch train.sh "oversampling_ratio=30 use_vote_loss=True use_seg_loss=True spiral_galaxies_only=False"
 
-sbatch train.sh "oversampling_ratio=1 use_vote_loss=True use_seg_loss=False loss_to_monitor=validation/epoch_vote_loss:0"
+# sbatch train.sh "oversampling_ratio=1 use_vote_loss=True use_seg_loss=False loss_to_monitor=validation/epoch_vote_loss:0"
+
+sbatch train.sh "oversampling_ratio=1 use_vote_loss=True use_seg_loss=False loss_to_monitor=validation/epoch_vote_loss:0 use_dummy_encoder=True"

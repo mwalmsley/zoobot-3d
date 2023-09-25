@@ -142,16 +142,27 @@ def train(config : omegaconf.DictConfig) -> None:
         # and shuffle again
         train_catalog = train_catalog.sample(frac=1, random_state=config.random_state).reset_index(drop=True)
 
-    
-    model = gz3d_pytorch_model.ZooBot3D(
-        input_size=config.image_size,
-        n_classes=2,  # spiral segmap, bar segmap
-        output_dim=len(schema.label_cols),
-        question_index_groups=schema.question_index_groups,
-        use_vote_loss=config.use_vote_loss,
-        use_seg_loss=config.use_seg_loss,
-        seg_loss_weighting=config.seg_loss_weighting
-    )
+    if config.use_dummy_encoder:
+        logging.warning('Using zoobot encoder')
+        model = gz3d_pytorch_model.ZoobotDummy(
+            input_size=config.image_size,
+            n_classes=2,  # spiral segmap, bar segmap
+            output_dim=len(schema.label_cols),
+            question_index_groups=schema.question_index_groups,
+            use_vote_loss=config.use_vote_loss,
+            use_seg_loss=config.use_seg_loss,
+            seg_loss_weighting=config.seg_loss_weighting
+        )
+    else:
+        model = gz3d_pytorch_model.ZooBot3D(
+            input_size=config.image_size,
+            n_classes=2,  # spiral segmap, bar segmap
+            output_dim=len(schema.label_cols),
+            question_index_groups=schema.question_index_groups,
+            use_vote_loss=config.use_vote_loss,
+            use_seg_loss=config.use_seg_loss,
+            seg_loss_weighting=config.seg_loss_weighting
+        )
 
     datamodule = pytorch_datamodule.SegmentationDataModule(
         train_catalog=train_catalog,

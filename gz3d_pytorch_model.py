@@ -17,6 +17,7 @@ from zoobot.pytorch.estimators.custom_layers import PermaDropout
 # new custom layers
 from custom_layers import DownSample, UpSample, ConvBlock, ResNet
 
+
 class ZooBot3D(define_model.GenericLightningModule):
     def __init__(self,
                  output_dim = 34,
@@ -192,6 +193,26 @@ class ZooBot3D(define_model.GenericLightningModule):
                 step=self.global_step
             )
 
+
+class ZoobotDummy(ZooBot3D):
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        
+        self.dummy_encoder = define_model.get_pytorch_encoder(
+                'efficientnet_b0',
+                3,
+                use_imagenet_weights=False
+            )
+        
+    def __forward__(self, x):
+        x = self.dummy_encoder(x)
+        z = self.head(x)
+        y = torch.random(x.shape)  # 'decoded' image
+        return y, z
+        
+
+    
 
 # Standalone encoder class: return both the encoder output and the skip connections, include midblocks
 class pytorch_encoder_module(nn.Module):
