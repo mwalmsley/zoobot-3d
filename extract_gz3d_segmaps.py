@@ -60,9 +60,6 @@ def extract_marks_for_galaxy(galaxy, which_marks):
     all_marks_by_users = [json.loads(r[2]) for r in raw_annotations]
     # list of N components, where each component is a list of XY pixel coordinate pairs constructing a path 
 
-    # each user has an extra useless list level
-    # all_marks_by_users = [x[0] for x in all_marks_by_users]
-
     return all_marks_by_users
 
 
@@ -86,9 +83,9 @@ if __name__ == '__main__':
     df['gz3d_fits_loc'] = base_dir + df['relative_gz3d_fits_loc']
     df['segmap_json_loc'] = base_dir + df['relative_segmap_json_loc']
     # TODO temp fix
-    df['segmap_json_loc'] = df['segmap_json_loc'].str.replace('/segmaps/', '/segmaps/marks_constnorm/')
-    df['spiral_mask_loc'] = base_dir + df['relative_spiral_mask_loc']
-    df['bar_mask_loc'] = base_dir + df['relative_bar_mask_loc']
+    df['segmap_json_loc'] = df['segmap_json_loc'].str.replace('/segmaps/', '/segmaps/marks/')
+    df['spiral_mask_loc'] = base_dir + df['relative_spiral_mask_loc'].str.replace('/masks/', '/masks_constnorm/')
+    df['bar_mask_loc'] = base_dir + df['relative_bar_mask_loc'].str.replace('/masks/', '/masks_constnorm/')
 
     logging.info(df['gz3d_fits_loc'].iloc[0])
     logging.info(df['segmap_json_loc'].iloc[0])
