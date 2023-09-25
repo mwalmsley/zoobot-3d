@@ -121,7 +121,7 @@ class ZooBot3D(define_model.GenericLightningModule):
                 self.log(f'{step_name}/epoch_vote_loss:0', multiq_loss_reduced, on_epoch=True, on_step=False, sync_dist=True)
                 # self.log_loss_per_question(multiq_loss, prefix=step_name)
             else:
-                raise ValueError(torch.batch['label_cols'])
+                raise ValueError(batch['label_cols'])
 
         if self.use_seg_loss:
             # we will always have 'spiral' and 'bar_mask' batch keys, else batch elements wouldn't be stackable
@@ -149,13 +149,13 @@ class ZooBot3D(define_model.GenericLightningModule):
         
     def log_loss_per_question(self, multiq_loss, prefix):
         for question_n in range(multiq_loss.shape[1]):
-            self.log(f'{prefix}/epoch_questions/question_{question_n}_loss:0', torch.nanmean(multiq_loss[:, question_n]), on_epoch=True, on_step=False, sync_dist=True)
+            self.log(f'{prefix}/epoch_questions/question_{question_n}_loss:0', torch.mean(multiq_loss[:, question_n]), on_epoch=True, on_step=False, sync_dist=True)
             
     def log_loss_per_seg_map_name(self, seg_loss, prefix):
         # log seg maps individually
         for seg_map_class_index in range(seg_loss.shape[1]):  # first dim is the seg map index
             # mean over the batch and all pixels, for the current seg map index
-            self.log(f'{prefix}/epoch_seg_maps/seg_map_{seg_map_class_index}_loss:0', torch.nanmean(seg_loss[:, seg_map_class_index, :, :]), on_epoch=True, on_step=False, sync_dist=True)
+            self.log(f'{prefix}/epoch_seg_maps/seg_map_{seg_map_class_index}_loss:0', torch.mean(seg_loss[:, seg_map_class_index, :, :]), on_epoch=True, on_step=False, sync_dist=True)
 
     def log_outputs(self, outputs, step_name):
         max_images = 5
