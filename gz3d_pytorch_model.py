@@ -105,23 +105,24 @@ class ZooBot3D(define_model.GenericLightningModule):
         return outputs
 
     def calculate_and_log_loss(self, predictions, batch, step_name):
-        # loss logging, found it!
         pred_labels, pred_maps = predictions
-        loss = 0.
+        
 
         if self.use_vote_loss:
             # self.loss_func returns shape of (galaxy, question), mean to ()
             # dim=1 is the question dim, so sum over that
-            has_votes = torch.sum(batch['label_cols'], dim=1) > 0
-            if torch.sum(has_votes) > 0:  # no dim, any 
-                # should always be true
+            has_votes = torch.amax(batch['label_cols'], dim=1) > 0
+            if torch.any(has_votes > 0):
                 multiq_loss = self.dirichlet_loss(pred_labels[has_votes], batch['label_cols'][has_votes], sum_over_questions=False)
                 multiq_loss_reduced = torch.mean(multiq_loss)
-                loss += multiq_loss_reduced
-                # optional extra logging
-                self.log(f'{step_name}/epoch_vote_loss:0', multiq_loss_reduced, on_epoch=True, on_step=False, sync_dist=True)
-                # self.log_loss_per_question(multiq_loss, prefix=step_name)
-            # else:
+            else:
+                multiq_loss_reduced = 0
+                
+            # optional extra logging
+            self.log(f'{step_name}/epoch_vote_loss:0', multiq_loss_reduced, on_epoch=True, on_step=False, sync_dist=True)
+            # self.log_loss_per_question(multiq_loss, prefix=step_name)
+            
+
                 # logging.warning('No votes in batch, skipping seg loss')
 
         if self.use_seg_loss:
@@ -132,22 +133,23 @@ class ZooBot3D(define_model.GenericLightningModule):
             # concat as (batch, map_index, 128, 128), where 1st dim is now map index
             # set nan where seg map max is 0 i.e. no seg labels
 
-            # has_maps is shape (batch, 2). True where segmap exists
-            # has_maps = torch.sum(seg_maps, dim=(2, 3)) > 0
-            has_maps = torch.sum(seg_maps[:, 0], dim=(1, 2)) > 0
-            if torch.sum(has_maps) > 0:
-                # for now, spiral loss only (dim 1 index 0), for simplicity
-                seg_loss = self.seg_loss(seg_maps[has_maps, 0], pred_maps[has_maps, 0], reduction='none') 
+            # has_maps is shape (batch, 2). True where spiral segmap exists
+            has_maps = torch.amax(seg_maps, dim=(2, 3)) > 0  # check over the spatial dims
+            # has_maps = torch.sum(seg_maps[:, 0], dim=(1, 2)) > 0
+            if torch.any(has_maps > 0):
+                seg_loss = self.seg_loss(seg_maps, pred_maps, reduction='none') 
+                seg_loss[~has_maps] = torch.nan  # set loss to 0 where no seg map exists (or could set preds to zero, or could index out)
                 # seg loss has shape (batch, map_index, 128, 128)]
-                seg_loss_reduced = torch.mean(seg_loss)
-                loss += self.seg_loss_weighting * seg_loss_reduced
+                seg_loss_reduced = torch.nanmean(seg_loss)
 
                 # optional extra logging (okay the first one is v. handy for early stopping, not optional really)
                 self.log(f'{step_name}/epoch_seg_loss:0', seg_loss_reduced, on_epoch=True, on_step=False, sync_dist=True)
                 # self.log_loss_per_seg_map_name(seg_loss, prefix=step_name)
             else:
-                logging.warning('No seg maps in batch, skipping seg loss')
+                # logging.warning('No seg maps in batch, skipping seg loss')
+                seg_loss_reduced = 0
 
+        loss = multiq_loss_reduced + self.seg_loss_weighting * seg_loss_reduced
         self.log(f'{step_name}/epoch_total_loss:0', loss, on_epoch=True, on_step=False, sync_dist=True)
 
         return loss
@@ -352,16 +354,42 @@ class pytorch_decoder_module(nn.Module):
 
 if __name__ == '__main__':
 
-    model = ZooBot3D()
+    from zoobot.shared import schemas
+
+    batch_size = 16
+    image_size = 128
+    question_index_groups = [(0, 2)]
+    output_dim = 3  # 0, 1, 2
+
+    model = ZooBot3D(
+        question_index_groups=question_index_groups,
+        output_dim=output_dim
+    )
     encoder = model.encoder
     decoder = model.decoder
 
     # test with dummy inputs
-    image = torch.rand((1, 3, 128, 128))
+    image = torch.rand((batch_size, 3, image_size, image_size))
     encoded_image, skip_outputs = encoder(image)
     # print(image.shape)
     print(encoded_image.shape)
     decoded_output = decoder((encoded_image, skip_outputs))
     print(decoded_output.shape)
+
+    predicted_labels = torch.rand((batch_size, output_dim))
+    predicted_maps = torch.rand((batch_size, 2, image_size, image_size))
+    predictions = predicted_labels, predicted_maps
+
+    batch = {
+        'image': image,
+        # a few will have no votes, by chance
+        'label_cols': torch.randint(low=0, high=1, size=(batch_size, output_dim)),
+        'spiral_mask': torch.rand((batch_size, 1, image_size, image_size)),
+        'bar_mask': torch.rand((batch_size, 1, image_size, image_size))
+    }
+    # randomly blank some masks
+    batch['spiral_mask'][torch.rand(batch_size) < 0.5] = 0
+    batch['bar_mask'][torch.rand(batch_size) < 0.5] = 0
+    model.calculate_and_log_loss(predictions, batch, step_name='train')
 
     # see train.py for use

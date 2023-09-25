@@ -53,7 +53,7 @@ def train(config : omegaconf.DictConfig) -> None:
         config.num_workers = 1
         config.accelerator = 'cpu'
         config.precision = '32-true'
-        config.devices = 'auto'
+        config.devices = 1
     
     if config.accelerator == 'gpu':
         if config.precision == '16-mixed':
@@ -185,7 +185,7 @@ def train(config : omegaconf.DictConfig) -> None:
         ModelCheckpoint(dirpath=save_dir, monitor=config.loss_to_monitor)
     ]
     # use this obj so we can log the string above
-    if config.devices >1:
+    if config.devices > 1:
         logging.info('Using DDP strategy')
         
         strategy_obj = DDPStrategy(
@@ -294,18 +294,7 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
     train()
 
-#     parser = argparse.ArgumentParser()
-#     parser.add_argument('--save-dir', dest='save_dir', default='results/models', type=str)
-#     parser.add_argument('--max-galaxies', dest='max_galaxies', default=None, type=int)
-#     parser.add_argument('--gz3d-galaxies-only', dest='gz3d_galaxies_only', default=False, action='store_true')
-#     parser.add_argument('--spiral-galaxies-only', dest='spiral_galaxies_only', default=False, action='store_true')
-#     parser.add_argument('--use-vote-loss', dest='use_vote_loss', default=False, action='store_true')
-#     parser.add_argument('--use-seg-loss', dest='use_seg_loss', default=False, action='store_true')
-#     parser.add_argument('--seg-loss-weighting', dest='seg_loss_weighting', default=100., type=float)
-#     parser.add_argument('--oversampling', dest='oversampling_ratio', default=1, type=int)
-#     parser.add_argument('--debug', dest='debug',
-#                         default=False, action='store_true')
-#     parser.add_argument('--seed', dest='random_state', default=42, type=int)
-#     args = parser.parse_args()
 
-#     main(args)
+    # uses hydra for config
+
+    # python train.py debug=True
