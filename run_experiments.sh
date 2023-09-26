@@ -27,6 +27,7 @@
 
 # all galaxies, checking each loss
 sbatch train.sh "oversampling_ratio=10 use_vote_loss=False use_seg_loss=True seg_loss_weighting=1. vote_loss_weighting=0.01 random_state=42 max_additional_galaxies=50000 spiral_galaxies_only=False"
+sleep 5  # avoid name collision with hydra-gen folder, named by second
 sbatch train.sh "oversampling_ratio=10 use_vote_loss=True use_seg_loss=True seg_loss_weighting=1. vote_loss_weighting=0.01 random_state=42 max_additional_galaxies=50000 spiral_galaxies_only=False"
 
 # sbatch train.sh "oversampling_ratio=10 use_vote_loss=False use_seg_loss=True seg_loss_weighting=400 random_state=42"
