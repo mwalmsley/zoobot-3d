@@ -26,8 +26,8 @@
 # yeah, exactly where it begins is fairly random
 
 # all galaxies, checking each loss
-sbatch train.sh "oversampling_ratio=5 use_vote_loss=False use_seg_loss=True seg_loss_weighting=100 random_state=42 max_additional_galaxies=50000 spiral_galaxies_only=False"
-sbatch train.sh "oversampling_ratio=5 use_vote_loss=True use_seg_loss=True seg_loss_weighting=100 random_state=42 max_additional_galaxies=50000 spiral_galaxies_only=False"
+sbatch train.sh "oversampling_ratio=10 use_vote_loss=False use_seg_loss=True seg_loss_weighting=400 random_state=42 max_additional_galaxies=50000 spiral_galaxies_only=False"
+sbatch train.sh "oversampling_ratio=10 use_vote_loss=True use_seg_loss=True seg_loss_weighting=400 random_state=42 max_additional_galaxies=50000 spiral_galaxies_only=False"
 
 # sbatch train.sh "oversampling_ratio=10 use_vote_loss=False use_seg_loss=True seg_loss_weighting=400 random_state=42"
 # sbatch train.sh "oversampling_ratio=10 use_vote_loss=True use_seg_loss=True seg_loss_weighting=400 random_state=42"
