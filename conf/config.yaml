@@ -27,13 +27,6 @@ precision: 16-mixed
 schema_name: 'desi_dr5'
 
 # https://hydra.cc/docs/configure_hydra/workdir/
-# hydra:
-#   run:
-#     dir: outputs/${hydra.job.name}/${now:%Y-%m-%d_%H-%M-%S}
-#   launcher:
-#     constraint: A100
-#     cpus_per_task: 24
-#     tasks_per_node: 1
-#     mem_gb: 50
-#     nodes: 1
-#     timeout_min: 4320  # 72h
+hydra:
+  run:
+    dir: ./outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}_${hydra.job.id}
