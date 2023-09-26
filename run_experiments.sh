@@ -12,7 +12,10 @@
 
 # seg loss only, gz3d only (as even simpler baseline)
 # sbatch train.sh "oversampling_ratio=1 use_vote_loss=False use_seg_loss=True seg_loss_weighting=100 gz3d_galaxies_only=True"
-sbatch train.sh "oversampling_ratio=1 use_vote_loss=True use_seg_loss=True seg_loss_weighting=100 gz3d_galaxies_only=True" 
+# sbatch train.sh "oversampling_ratio=1 use_vote_loss=True use_seg_loss=True seg_loss_weighting=100 gz3d_galaxies_only=True" 
+# repeat with L1 loss instead
+sbatch train.sh "oversampling_ratio=1 use_vote_loss=False use_seg_loss=True seg_loss_weighting=100 gz3d_galaxies_only=True seg_loss_metric=l1"
+sbatch train.sh "oversampling_ratio=1 use_vote_loss=True use_seg_loss=True seg_loss_weighting=100 gz3d_galaxies_only=True seg_loss_metric=l1" 
 
 # checking that early discontinuity with a different seed
 # sbatch train.sh "oversampling_ratio=1 use_vote_loss=False use_seg_loss=True seg_loss_weighting=100 gz3d_galaxies_only=True random_state=43"

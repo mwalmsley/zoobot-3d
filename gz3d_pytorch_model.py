@@ -34,7 +34,8 @@ class ZooBot3D(define_model.GenericLightningModule):
                  weight_decay=0.05,
                  use_vote_loss=True,
                  use_seg_loss=True,
-                 seg_loss_weighting=1.
+                 seg_loss_weighting=1.,
+                 seg_loss_metric='mse'
                  ):
         super().__init__()
         self.channels = n_channels
@@ -45,6 +46,7 @@ class ZooBot3D(define_model.GenericLightningModule):
         self.use_vote_loss = use_vote_loss
         self.use_seg_loss = use_seg_loss
         self.seg_loss_weighting = seg_loss_weighting
+        self.seg_loss_metric=seg_loss_metric
 
         dims = [self.channels, *map(lambda m: n_filters * m, dim_mults)]
         self.in_out = list(zip(dims[:-1], dims[1:]))
@@ -64,7 +66,12 @@ class ZooBot3D(define_model.GenericLightningModule):
         # TODO Not really sure how Torch parses the loss functions yet, need to handle the multiple outputs
         # Mike: as long as make step returns a dict with 'loss' key, it should work automatically
         self.dirichlet_loss = define_model.get_dirichlet_loss_func(question_index_groups)
-        self.seg_loss = F.mse_loss
+        if self.seg_loss_metric == 'mse':
+            self.seg_loss = F.mse_loss
+        elif self.seg_loss_metric == 'l1':
+            self.seg_loss = F.l1_loss
+        else:
+            raise ValueError(self.seg_loss_metric)
 
         # build decoder
         self.decoder = pytorch_decoder_module(self.in_out,
