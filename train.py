@@ -53,8 +53,8 @@ def train(config : omegaconf.DictConfig) -> None:
         config.max_epochs = 2
         config.patience = 2
         config.image_size = 128
-        config.batch_size = 32
-        config.num_workers = 4
+        config.batch_size = 64
+        config.num_workers = 1
         config.accelerator = 'cpu'
         config.precision = '32-true'
         config.devices = 1
@@ -62,7 +62,6 @@ def train(config : omegaconf.DictConfig) -> None:
     if config.accelerator == 'gpu':
         if config.precision == '16-mixed':
             torch.set_float32_matmul_precision('medium')
-
 
     if config.schema_name == 'desi_dr5':
         schema = schemas.decals_dr5_ortho_schema  # new - just DR5
@@ -134,13 +133,13 @@ def train(config : omegaconf.DictConfig) -> None:
             
     if config.max_additional_galaxies is not None:
         # never drop galaxies with spiral masks
-        df = pd.concat(
+        train_catalog = pd.concat(
             [
-                df[df['spiral_mask_exists']],
-                df[~df['spiral_mask_exists']][:config.max_additional_galaxies]
+                train_catalog[train_catalog['spiral_mask_exists']],
+                train_catalog[~train_catalog['spiral_mask_exists']][:config.max_additional_galaxies]
             ]
         ).sample(frac=1, random_state=config.random_state).reset_index(drop=True)
-        logging.info(f'Galaxies after cut: {len(df)}')
+        logging.info(f'Galaxies after cut: {len(train_catalog)}')
 
     logging.info(f'Final train catalog, before oversampling: {len(train_catalog)}')
 

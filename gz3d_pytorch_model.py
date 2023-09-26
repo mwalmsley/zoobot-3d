@@ -147,10 +147,10 @@ class ZooBot3D(define_model.GenericLightningModule):
             has_maps = torch.amax(seg_maps, dim=(2, 3)) > 0  # check over the spatial dims
             # has_maps = torch.sum(seg_maps[:, 0], dim=(1, 2)) > 0
             if torch.any(has_maps > 0):
-                seg_loss = self.seg_loss(seg_maps, pred_maps, reduction='none') 
+                seg_loss = self.seg_loss(seg_maps, pred_maps, reduction='none').mean(dim=(2, 3))
                 seg_loss[~has_maps] = torch.nan  # set loss to 0 where no seg map exists (or could set preds to zero, or could index out)
-                # seg loss has shape (batch, map_index, 128, 128)]
-                seg_loss_reduced = torch.nanmean(seg_loss)
+                # seg loss has shape (batch, map_index)]
+                seg_loss_reduced = torch.nanmean(seg_loss[:, 0]) # spirals only as debugging
 
                 # optional extra logging (okay the first one is v. handy for early stopping, not optional really)
                 self.log(f'{step_name}/epoch_seg_loss:0', seg_loss_reduced, on_epoch=True, on_step=False, sync_dist=True)

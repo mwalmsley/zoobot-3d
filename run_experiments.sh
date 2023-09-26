@@ -11,8 +11,8 @@
 # sbatch train.sh debug=True
 
 # seg loss only, gz3d only (as even simpler baseline)
-sbatch train.sh "oversampling_ratio=1 use_vote_loss=False use_seg_loss=True vote_loss_weighting=0.01 gz3d_galaxies_only=True"
-sbatch train.sh "oversampling_ratio=1 use_vote_loss=True use_seg_loss=True vote_loss_weighting=0.01 gz3d_galaxies_only=True" 
+# sbatch train.sh "oversampling_ratio=1 use_vote_loss=False use_seg_loss=True vote_loss_weighting=0.01 gz3d_galaxies_only=True"
+# sbatch train.sh "oversampling_ratio=1 use_vote_loss=True use_seg_loss=True vote_loss_weighting=0.01 gz3d_galaxies_only=True" 
 # repeat with L1 loss instead
 # sbatch train.sh "oversampling_ratio=1 use_vote_loss=False use_seg_loss=True seg_loss_weighting=100 gz3d_galaxies_only=True seg_loss_metric=l1"
 # sbatch train.sh "oversampling_ratio=1 use_vote_loss=True use_seg_loss=True seg_loss_weighting=100 gz3d_galaxies_only=True seg_loss_metric=l1" 
@@ -20,10 +20,10 @@ sbatch train.sh "oversampling_ratio=1 use_vote_loss=True use_seg_loss=True vote_
 # all four still show unpredictable improvement at some point during training, but end up very similar
 # set L1 and constnorm as default
 
-# checking that early discontinuity with a different seed
-# sbatch train.sh "oversampling_ratio=1 use_vote_loss=False use_seg_loss=True seg_loss_weighting=100 gz3d_galaxies_only=True random_state=43"
-# sbatch train.sh "oversampling_ratio=1 use_vote_loss=True use_seg_loss=True seg_loss_weighting=100 gz3d_galaxies_only=True random_state=43"
-# yeah, exactly where it begins is fairly random
+
+sbatch train.sh "oversampling_ratio=5 use_vote_loss=False use_seg_loss=True vote_loss_weighting=0.01 max_additional_galaxies=10000"
+sbatch train.sh "oversampling_ratio=5 use_vote_loss=True use_seg_loss=True vote_loss_weighting=0.01 max_additional_galaxies=10000"
+
 
 # all galaxies, checking each loss
 # sbatch train.sh "oversampling_ratio=10 use_vote_loss=False use_seg_loss=True seg_loss_weighting=1. vote_loss_weighting=0.01 random_state=42 max_additional_galaxies=50000 spiral_galaxies_only=False"
