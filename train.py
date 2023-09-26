@@ -42,7 +42,7 @@ def train(config : omegaconf.DictConfig) -> None:
 
     debug = config.debug
     if debug or on_local:
-        config.max_galaxies = 500
+        config.max_additional_galaxies = 500
         config.gz3d_galaxies_only = True
         config.spiral_galaxies_only = True
         config.oversampling_ratio = 1
@@ -99,10 +99,6 @@ def train(config : omegaconf.DictConfig) -> None:
 
     logging.info(f'Galaxies in catalog: {len(df)}')
 
-    if config.max_galaxies is not None:
-        df = df[:config.max_galaxies]
-        logging.info(f'Galaxies after cut: {len(df)}')
-
     train_catalog, hidden_catalog = train_test_split(df, test_size=0.3, random_state=config.random_state)
     val_catalog, test_catalog = train_test_split(hidden_catalog, test_size=0.2/0.3, random_state=config.random_state)
 
@@ -112,17 +108,35 @@ def train(config : omegaconf.DictConfig) -> None:
     val_catalog = val_catalog.query('spiral_mask_exists')
     test_catalog = test_catalog.query('spiral_mask_exists')
 
-    if config.spiral_galaxies_only:
-        # these are PREDICTED fractions, hence no _dr12, _gz2, etc
-        # consistent across GZ2/DESI (nice)
-        is_predicted_feat = train_catalog['smooth-or-featured_featured-or-disk_fraction'] > 0.5
-        is_predicted_face = train_catalog['disk-edge-on_yes_fraction'] < 0.5
-        is_predicted_spiral = train_catalog['has-spiral-arms_yes_fraction'] > 0.5
-        # always keep the spiral masked galaxies, regardless
-        train_catalog = train_catalog[(is_predicted_feat & is_predicted_face & is_predicted_spiral) | (train_catalog['spiral_mask_exists'])]
+    # adjust train catalog according to config
     if config.gz3d_galaxies_only:
         train_catalog = train_catalog.query('spiral_mask_exists')
         assert len(train_catalog) > 0
+    else:
+        if config.spiral_galaxies_only:
+            # these are PREDICTED fractions, hence no _dr12, _gz2, etc
+            # consistent across GZ2/DESI (nice)
+            is_predicted_feat = train_catalog['smooth-or-featured_featured-or-disk_fraction'] > 0.5
+            is_predicted_face = train_catalog['disk-edge-on_yes_fraction'] < 0.5
+            is_predicted_spiral = train_catalog['has-spiral-arms_yes_fraction'] > 0.5
+            # always keep the spiral masked galaxies, regardless
+            train_catalog = train_catalog[(is_predicted_feat & is_predicted_face & is_predicted_spiral) | (train_catalog['spiral_mask_exists'])]
+        else:
+            # always remove the totally smooth galaxies, just for training time
+            is_predicted_not_smooth = train_catalog['smooth-or-featured_featured-or-disk_fraction'] > 0.2
+            train_catalog = train_catalog[is_predicted_not_smooth | train_catalog['spiral_mask_exists']]
+
+    logging.info('Train galaxies after vote selection: ' + str(len(train_catalog)))
+            
+    if config.max_additional_galaxies is not None:
+        # never drop galaxies with spiral masks
+        df = pd.concat(
+            [
+                df[df['has_spiral_mask']],
+                df[~df['has_spiral_mask']][:config.max_additional_galaxies]
+            ]
+        ).sample(frac=1, random_state=config.random_state).reset_index(drop=True)
+        logging.info(f'Galaxies after cut: {len(df)}')
 
     logging.info(f'Final train catalog, before oversampling: {len(train_catalog)}')
 
@@ -133,7 +147,6 @@ def train(config : omegaconf.DictConfig) -> None:
     # # where cond False (i.e. where spiral_mask_exists=True), replace with other (0)
     # df[schema.label_cols] = df[schema.label_cols].where(~df['spiral_mask_exists'], 0)
     # logging.info(df[df['spiral_mask_exists']][schema.label_cols[0]])
-
 
     log_every_n_steps = min(int(len(train_catalog) / config.batch_size), 100)
     logging.info(f'Logging every {log_every_n_steps} steps')

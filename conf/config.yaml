@@ -1,6 +1,6 @@
 random_state: 42
 debug: False
-max_galaxies: null  # i.e. None
+max_additional_galaxies: null  # i.e. None
 
 batch_size: 256
 image_size: 256
@@ -10,7 +10,7 @@ loss_to_monitor: 'validation/epoch_seg_loss:0'
 use_vote_loss: True
 use_seg_loss: True
 seg_loss_weighting: 3
-seg_loss_metric: mse
+seg_loss_metric: l1  # changed from MSE
 use_dummy_encoder: False
 
 gz3d_galaxies_only: False
