@@ -132,8 +132,8 @@ def train(config : omegaconf.DictConfig) -> None:
         # never drop galaxies with spiral masks
         df = pd.concat(
             [
-                df[df['has_spiral_mask']],
-                df[~df['has_spiral_mask']][:config.max_additional_galaxies]
+                df[df['spiral_mask_exists']],
+                df[~df['spiral_mask_exists']][:config.max_additional_galaxies]
             ]
         ).sample(frac=1, random_state=config.random_state).reset_index(drop=True)
         logging.info(f'Galaxies after cut: {len(df)}')
