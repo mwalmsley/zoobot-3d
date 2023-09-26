@@ -2,6 +2,7 @@ import typing
 import os
 import logging
 import argparse
+import time
 
 import omegaconf
 import hydra
@@ -32,13 +33,16 @@ def train(config : omegaconf.DictConfig) -> None:
 
     pl.seed_everything(config.random_state)
 
-    save_dir = HydraConfig.get().run.dir
-
+    # save_dir = HydraConfig.get().run.dir
+ 
     on_local = os.path.isdir('/Users/user/')
     if on_local:
         base_dir = '/Users/user/repos/zoobot-3d/'
     else:
         base_dir = '/share/nas2/walml/galaxy_zoo/segmentation/'
+
+    save_dir = base_dir + 'outputs/run_' + str(time.time())
+    logging.info(save_dir)
 
     debug = config.debug
     if debug or on_local:
