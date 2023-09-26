@@ -35,6 +35,7 @@ class ZooBot3D(define_model.GenericLightningModule):
                  use_vote_loss=True,
                  use_seg_loss=True,
                  seg_loss_weighting=1.,
+                 vote_loss_weighting=1.,
                  seg_loss_metric='mse'
                  ):
         super().__init__()
@@ -46,6 +47,7 @@ class ZooBot3D(define_model.GenericLightningModule):
         self.use_vote_loss = use_vote_loss
         self.use_seg_loss = use_seg_loss
         self.seg_loss_weighting = seg_loss_weighting
+        self.vote_loss_weighting = vote_loss_weighting
         self.seg_loss_metric=seg_loss_metric
 
         dims = [self.channels, *map(lambda m: n_filters * m, dim_mults)]
@@ -130,7 +132,7 @@ class ZooBot3D(define_model.GenericLightningModule):
             self.log(f'{step_name}/epoch_vote_loss:0', multiq_loss_reduced, on_epoch=True, on_step=False, sync_dist=True)
             # self.log_loss_per_question(multiq_loss, prefix=step_name)
             
-            loss += multiq_loss_reduced
+            loss += (self.vote_loss_weighting * multiq_loss_reduced)
 
 
         if self.use_seg_loss:
@@ -157,7 +159,7 @@ class ZooBot3D(define_model.GenericLightningModule):
                 # logging.warning('No seg maps in batch, skipping seg loss')
                 seg_loss_reduced = 0
 
-            loss += self.seg_loss_weighting * seg_loss_reduced
+            loss += (self.seg_loss_weighting * seg_loss_reduced)
 
         self.log(f'{step_name}/epoch_total_loss:0', loss, on_epoch=True, on_step=False, sync_dist=True)
 

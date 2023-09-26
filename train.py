@@ -183,6 +183,7 @@ def train(config : omegaconf.DictConfig) -> None:
             use_vote_loss=config.use_vote_loss,
             use_seg_loss=config.use_seg_loss,
             seg_loss_weighting=config.seg_loss_weighting,
+            vote_loss_weighting=config.vote_loss_weighting,
             seg_loss_metric=config.seg_loss_metric
         )
 

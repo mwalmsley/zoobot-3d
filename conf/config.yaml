@@ -9,7 +9,8 @@ loss_to_monitor: 'validation/epoch_seg_loss:0'
 
 use_vote_loss: True
 use_seg_loss: True
-seg_loss_weighting: 3
+seg_loss_weighting: 1
+vote_loss_weighting: 1
 seg_loss_metric: l1  # changed from MSE
 use_dummy_encoder: False
 
