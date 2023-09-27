@@ -416,8 +416,8 @@ def beta_binomial_loss_func(segmaps, pred_maps, reduction):
     bar_pred_c1, bar_pred_c2 = pred_maps[:, 2], pred_maps[:, 3]
 
     
-    spiral_loss = BetaBinomial(spiral_pred_c1, spiral_pred_c2, total_count=15, validate_args=True).log_prob(spiral_maps)
-    bar_loss = BetaBinomial(bar_pred_c1, bar_pred_c2, total_count=15, validate_args=True).log_prob(bar_maps)
+    spiral_loss = BetaBinomial(spiral_pred_c1 + 1e-8, spiral_pred_c2 + 1e-8, total_count=15, validate_args=True).log_prob(spiral_maps)
+    bar_loss = BetaBinomial(bar_pred_c1 + 1e-8, bar_pred_c2 + 1e-8, total_count=15, validate_args=True).log_prob(bar_maps)
 
     return torch.stack([spiral_loss, bar_loss], dim=1)  # stack loss like segmaps
 
