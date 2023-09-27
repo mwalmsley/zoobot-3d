@@ -191,8 +191,8 @@ def train(config : omegaconf.DictConfig) -> None:
         # use_seg_loss=config.use_seg_loss,
         seg_loss_weighting=config.seg_loss_weighting,
         # vote_loss_weighting=config.vote_loss_weighting,
-        seg_loss_metric=config.seg_loss_metric,
-        skip_connection_weighting=config.skip_connection_weighting
+        seg_loss_metric=config.seg_loss_metric
+        # skip_connection_weighting=config.skip_connection_weighting
     )
 
     datamodule = pytorch_datamodule.SegmentationDataModule(

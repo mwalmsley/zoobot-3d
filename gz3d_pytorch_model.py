@@ -40,7 +40,7 @@ class ZooBot3D(define_model.GenericLightningModule):
                  seg_loss_weighting=1.,
                 #  vote_loss_weighting=1.,
                  seg_loss_metric='mse',
-                 skip_connection_weighting=1.,
+                #  skip_connection_weighting=1.,
                  ):
         super().__init__()
         self.n_classes = n_classes
@@ -55,7 +55,7 @@ class ZooBot3D(define_model.GenericLightningModule):
         # self.vote_loss_weighting = vote_loss_weighting
         self.seg_loss_metric=seg_loss_metric
 
-        self.skip_connection_weighting = skip_connection_weighting
+        # self.skip_connection_weighting = skip_connection_weighting
 
         dims = [self.channels, *map(lambda m: n_filters * m, dim_mults)]
         self.in_out = list(zip(dims[:-1], dims[1:]))
@@ -63,8 +63,10 @@ class ZooBot3D(define_model.GenericLightningModule):
 
         # build encoder model
         self.encoder = pytorch_encoder_module(self.in_out,
-                                              self.drop_rates,
-                                              self.skip_connection_weighting)
+                                              self.drop_rates)
+
+                                            #   self.skip_connection_weighting
+                                            
 
         ## build classifier
         self.encoder_dim = get_encoder_dim(self.encoder, self.input_size, self.channels)
@@ -205,8 +207,8 @@ class ZooBot3D(define_model.GenericLightningModule):
         if step % 100 == 0:  # for speed
 
             max_images = 5
-            # for mask_name, mask_index in [('spiral', 0), ('bar', 1)]:
-            for mask_name, mask_index in [('spiral', 0), ('bar', 2)]:
+            for mask_name, mask_index in [('spiral', 0), ('bar', 1)]:
+            # for mask_name, mask_index in [('spiral', 0), ('bar', 2)]:
 
                 # B1HW shape
                 has_mask = torch.amax(outputs[f'{mask_name}_mask'], dim=(1, 2, 3)) > 0
@@ -287,15 +289,15 @@ class ZooBot3D(define_model.GenericLightningModule):
 class pytorch_encoder_module(nn.Module):
     def __init__(self, 
                  in_out,
-                 drop_rates,
-                 skip_connection_weighting=1.
+                 drop_rates
+                #  skip_connection_weighting=1.
                  ):
         super().__init__()
 
         self.downs = []
         num_resolutions = len(in_out)
 
-        self.skip_connection_weighting = skip_connection_weighting
+        # self.skip_connection_weighting = skip_connection_weighting
 
         for ind, (dim_in, dim_out) in enumerate(in_out):
             is_last = ind >= (num_resolutions - 1)
@@ -435,7 +437,7 @@ class pytorch_decoder_module(nn.Module):
             x = rn2(x)
             x = up(x)
 
-        return self.final_conv(x) + 1e-10
+        return self.final_conv(x)
 
 
 def beta_binomial_loss_func(segmaps, pred_maps, reduction, epsilon=1e-5):

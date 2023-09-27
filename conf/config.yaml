@@ -14,7 +14,7 @@ seg_loss_weighting: 1
 seg_loss_metric: l1  # changed from MSE, can also be beta_binomial
 n_classes: 2
 use_dummy_encoder: False
-skip_connection_weighting: 100.
+# skip_connection_weighting: 100.
 
 # gz3d_galaxies_only: False
 # spiral_galaxies_only: True
