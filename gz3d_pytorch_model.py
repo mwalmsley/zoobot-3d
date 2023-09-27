@@ -19,7 +19,7 @@ from zoobot.pytorch.estimators.custom_layers import PermaDropout
 from custom_layers import DownSample, UpSample, ConvBlock, ResNet
 
 
-class ZooBot3D(define_model.GenericLightningModule):
+class ZooBot3D(define_model.GenericLightningModule): 
     def __init__(self,
                 #  output_dim = 34,
                  input_size = 128,
