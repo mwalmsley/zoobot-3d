@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=segswp                # Job name
-#SBATCH --array=1-200%1
+#SBATCH --array=1-200%6
 #SBATCH --output=%x_%A_%a.log 
 #SBATCH --mem=0
 #SBATCH -c 24                                      # Job memory request
