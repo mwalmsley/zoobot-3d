@@ -3,7 +3,7 @@ debug: False
 # max_additional_galaxies: null  # i.e. None
 
 batch_size: 256
-image_size: 256
+image_size: 224  # was 256, woops
 max_epochs: 5000
 loss_to_monitor: 'validation/epoch_seg_loss:0'
 
