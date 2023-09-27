@@ -1,30 +1,30 @@
 random_state: 42
 debug: False
-max_additional_galaxies: null  # i.e. None
+# max_additional_galaxies: null  # i.e. None
 
 batch_size: 256
 image_size: 256
 max_epochs: 5000
 loss_to_monitor: 'validation/epoch_seg_loss:0'
 
-use_vote_loss: True
+# use_vote_loss: True
 use_seg_loss: True
 seg_loss_weighting: 1
-vote_loss_weighting: 1
+# vote_loss_weighting: 1
 seg_loss_metric: l1  # changed from MSE
 use_dummy_encoder: False
 
-gz3d_galaxies_only: False
-spiral_galaxies_only: True
+# gz3d_galaxies_only: False
+# spiral_galaxies_only: True
 patience: 10
-oversampling_ratio: 10
+# oversampling_ratio: 10
 
 num_workers: 20
 accelerator: gpu
 devices: 1
 precision: 16-mixed
 
-schema_name: 'desi_dr5'
+# schema_name: 'desi_dr5'
 
 # https://hydra.cc/docs/configure_hydra/workdir/
 hydra:

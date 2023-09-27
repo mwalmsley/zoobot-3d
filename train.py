@@ -8,7 +8,7 @@ import cv2
 import omegaconf
 import hydra
 # https://hydra.cc/docs/configure_hydra/intro/#accessing-the-hydra-config
-from hydra.core.hydra_config import HydraConfig
+# from hydra.core.hydra_config import HydraConfig
 
 import torch
 import pandas as pd
@@ -47,8 +47,8 @@ def train(config : omegaconf.DictConfig) -> None:
 
     debug = config.debug
     if debug or on_local:
-        config.max_additional_galaxies = 500
-        config.gz3d_galaxies_only = True
+        # config.max_additional_galaxies = 500
+        # config.gz3d_galaxies_only = True
         # config.spiral_galaxies_only = True
         # config.oversampling_ratio = 1
         config.max_epochs = 2
@@ -186,7 +186,7 @@ def train(config : omegaconf.DictConfig) -> None:
         # output_dim=len(schema.label_cols),
         # question_index_groups=schema.question_index_groups,
         # use_vote_loss=config.use_vote_loss,
-        use_seg_loss=config.use_seg_loss,
+        # use_seg_loss=config.use_seg_loss,
         seg_loss_weighting=config.seg_loss_weighting,
         # vote_loss_weighting=config.vote_loss_weighting,
         seg_loss_metric=config.seg_loss_metric

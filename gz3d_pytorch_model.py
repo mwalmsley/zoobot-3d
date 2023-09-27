@@ -32,10 +32,10 @@ class ZooBot3D(define_model.GenericLightningModule):
                 #  question_index_groups=None,
                  learning_rate=1e-3,
                  weight_decay=0.05,
-                 use_vote_loss=True,
-                 use_seg_loss=True,
+                #  use_vote_loss=True,
+                #  use_seg_loss=True,
                  seg_loss_weighting=1.,
-                 vote_loss_weighting=1.,
+                #  vote_loss_weighting=1.,
                  seg_loss_metric='mse'
                  ):
         super().__init__()
@@ -44,10 +44,10 @@ class ZooBot3D(define_model.GenericLightningModule):
         self.learning_rate = learning_rate
         self.weight_decay = weight_decay
 
-        self.use_vote_loss = use_vote_loss
-        self.use_seg_loss = use_seg_loss
+        # self.use_vote_loss = use_vote_loss
+        # self.use_seg_loss = use_seg_loss
         self.seg_loss_weighting = seg_loss_weighting
-        self.vote_loss_weighting = vote_loss_weighting
+        # self.vote_loss_weighting = vote_loss_weighting
         self.seg_loss_metric=seg_loss_metric
 
         dims = [self.channels, *map(lambda m: n_filters * m, dim_mults)]
@@ -123,7 +123,7 @@ class ZooBot3D(define_model.GenericLightningModule):
         # pred_labels, pred_maps = predictions
         pred_maps = predictions
         
-        loss = 0
+        # loss = 0
 
         # if self.use_vote_loss:
         #     # self.loss_func returns shape of (galaxy, question), mean to ()
@@ -142,31 +142,32 @@ class ZooBot3D(define_model.GenericLightningModule):
         #     loss += (self.vote_loss_weighting * multiq_loss_reduced)
 
 
-        if self.use_seg_loss:
-            # we will always have 'spiral' and 'bar_mask' batch keys, else batch elements wouldn't be stackable
-            seg_maps = torch.concat([batch['spiral_mask'], batch['bar_mask']], dim=1)
-            # each seg map, if in the batch dict, is called e.g. spiral_mask, bar_mask, etc
-            # masks are input as (batch, 1, 128, 128), where 1st dim is (dummy) channel
-            # concat as (batch, map_index, 128, 128), where 1st dim is now map index
-            # set nan where seg map max is 0 i.e. no seg labels
+        # if self.use_seg_loss:
+        # we will always have 'spiral' and 'bar_mask' batch keys, else batch elements wouldn't be stackable
+        seg_maps = torch.concat([batch['spiral_mask'], batch['bar_mask']], dim=1)
+        # each seg map, if in the batch dict, is called e.g. spiral_mask, bar_mask, etc
+        # masks are input as (batch, 1, 128, 128), where 1st dim is (dummy) channel
+        # concat as (batch, map_index, 128, 128), where 1st dim is now map index
+        # set nan where seg map max is 0 i.e. no seg labels
 
-            # has_maps is shape (batch, 2). True where spiral segmap exists
-            has_maps = torch.amax(seg_maps, dim=(2, 3)) > 0  # check over the spatial dims
-            # has_maps = torch.sum(seg_maps[:, 0], dim=(1, 2)) > 0
-            if torch.any(has_maps > 0):
-                seg_loss = self.seg_loss(seg_maps, pred_maps, reduction='none')
-                seg_loss[~has_maps] = torch.nan  # set loss to 0 where no seg map exists (or could set preds to zero, or could index out)
-                # seg loss has shape (batch, map_index)]
-                seg_loss_reduced = torch.nanmean(seg_loss[:, 0]) # spirals only as debugging
+        # has_maps is shape (batch, 2). True where spiral segmap exists
+        has_maps = torch.amax(seg_maps, dim=(2, 3)) > 0  # check over the spatial dims
+        # has_maps = torch.sum(seg_maps[:, 0], dim=(1, 2)) > 0
+        if torch.any(has_maps > 0):
+            seg_loss = self.seg_loss(seg_maps, pred_maps, reduction='none')
+            seg_loss[~has_maps] = torch.nan  # set loss to 0 where no seg map exists (or could set preds to zero, or could index out)
+            # seg loss has shape (batch, map_index)]
+            seg_loss_reduced = torch.nanmean(seg_loss[:, 0]) # spirals only as debugging
 
-                # optional extra logging (okay the first one is v. handy for early stopping, not optional really)
-                self.log(f'{step_name}/epoch_seg_loss:0', seg_loss_reduced, on_epoch=True, on_step=False, sync_dist=True)
-                # self.log_loss_per_seg_map_name(seg_loss, prefix=step_name)
-            else:
-                # logging.warning('No seg maps in batch, skipping seg loss')
-                seg_loss_reduced = 0
+            # optional extra logging (okay the first one is v. handy for early stopping, not optional really)
+            self.log(f'{step_name}/epoch_seg_loss:0', seg_loss_reduced, on_epoch=True, on_step=False, sync_dist=True)
+            # self.log_loss_per_seg_map_name(seg_loss, prefix=step_name)
+        else:
+            # logging.warning('No seg maps in batch, skipping seg loss')
+            seg_loss_reduced = 0
 
-            loss += (self.seg_loss_weighting * seg_loss_reduced)
+            # loss += (self.seg_loss_weighting * seg_loss_reduced)
+        loss = self.seg_loss_weighting * seg_loss_reduced
 
         self.log(f'{step_name}/epoch_total_loss:0', loss, on_epoch=True, on_step=False, sync_dist=True)
 
@@ -285,43 +286,43 @@ def get_encoder_dim(encoder, input_size, channels):
 
 # zoobot classification head with dirchelet loss
 
-def get_pytorch_dirichlet_head(encoder_dim: int, output_dim: int, test_time_dropout: bool, dropout_rate: float) -> torch.nn.Sequential:
-    """
-    NOTE: From Zoobot. Change, include Pooling layer.
-    Head to combine with encoder (above) when predicting Galaxy Zoo decision tree answers.
-    Pytorch Sequential model.
-    Predicts Dirichlet concentration parameters.
+# def get_pytorch_dirichlet_head(encoder_dim: int, output_dim: int, test_time_dropout: bool, dropout_rate: float) -> torch.nn.Sequential:
+#     """
+#     NOTE: From Zoobot. Change, include Pooling layer.
+#     Head to combine with encoder (above) when predicting Galaxy Zoo decision tree answers.
+#     Pytorch Sequential model.
+#     Predicts Dirichlet concentration parameters.
     
-    Also used when finetuning on a new decision tree - see :class:`zoobot.pytorch.training.finetune.FinetuneableZoobotTree`.
+#     Also used when finetuning on a new decision tree - see :class:`zoobot.pytorch.training.finetune.FinetuneableZoobotTree`.
 
-    Args:
-        encoder_dim (int): dimensions of preceding encoder i.e. the input size expected by this submodel.
-        output_dim (int): output dimensions of this head e.g. 34 to predict 34 answers.
-        test_time_dropout (bool): Use dropout at test time. 
-        dropout_rate (float): P of dropout. See torch.nn.Dropout docs.
+#     Args:
+#         encoder_dim (int): dimensions of preceding encoder i.e. the input size expected by this submodel.
+#         output_dim (int): output dimensions of this head e.g. 34 to predict 34 answers.
+#         test_time_dropout (bool): Use dropout at test time. 
+#         dropout_rate (float): P of dropout. See torch.nn.Dropout docs.
 
-    Returns:
-        torch.nn.Sequential: pytorch model expecting `encoder_dim` vector and predicting `output_dim` decision tree answers.
-    """
+#     Returns:
+#         torch.nn.Sequential: pytorch model expecting `encoder_dim` vector and predicting `output_dim` decision tree answers.
+#     """
 
-    modules_to_use = []
+#     modules_to_use = []
 
-    assert output_dim is not None
-    # yes AdaptiveAvgPool2d, encoder output needs to be for both classifier and decoder  
-    pooling_layer = nn.AdaptiveAvgPool2d(1)
-    modules_to_use.append(pooling_layer)
-    modules_to_use.append(nn.Flatten(start_dim=1))
-    if test_time_dropout:
-        logging.info('Using test-time dropout')
-        dropout_layer = PermaDropout
-    else:
-        logging.info('Not using test-time dropout')
-        dropout_layer = torch.nn.Dropout
-    modules_to_use.append(dropout_layer(dropout_rate))
-    # TODO could optionally add a bottleneck layer here
-    modules_to_use.append(efficientnet_custom.custom_top_dirichlet(encoder_dim, output_dim))
+#     assert output_dim is not None
+#     # yes AdaptiveAvgPool2d, encoder output needs to be for both classifier and decoder  
+#     pooling_layer = nn.AdaptiveAvgPool2d(1)
+#     modules_to_use.append(pooling_layer)
+#     modules_to_use.append(nn.Flatten(start_dim=1))
+#     if test_time_dropout:
+#         logging.info('Using test-time dropout')
+#         dropout_layer = PermaDropout
+#     else:
+#         logging.info('Not using test-time dropout')
+#         dropout_layer = torch.nn.Dropout
+#     modules_to_use.append(dropout_layer(dropout_rate))
+#     # TODO could optionally add a bottleneck layer here
+#     modules_to_use.append(efficientnet_custom.custom_top_dirichlet(encoder_dim, output_dim))
 
-    return nn.Sequential(*modules_to_use)
+#     return nn.Sequential(*modules_to_use)
 
 
 # decoder clss, include the skip connections — how to save on GPU cycles by not forward passing unecessarily?
@@ -381,8 +382,8 @@ if __name__ == '__main__':
     output_dim = 3  # 0, 1, 2
 
     model = ZooBot3D(
-        question_index_groups=question_index_groups,
-        output_dim=output_dim
+        # question_index_groups=question_index_groups,
+        # output_dim=output_dim
     )
     encoder = model.encoder
     decoder = model.decoder
@@ -395,14 +396,15 @@ if __name__ == '__main__':
     decoded_output = decoder((encoded_image, skip_outputs))
     print(decoded_output.shape)
 
-    predicted_labels = torch.rand((batch_size, output_dim))
+    # predicted_labels = torch.rand((batch_size, output_dim))
     predicted_maps = torch.rand((batch_size, 2, image_size, image_size))
-    predictions = predicted_labels, predicted_maps
+    # predictions = predicted_labels, predicted_maps
+    predictions = predicted_maps
 
     batch = {
         'image': image,
         # a few will have no votes, by chance
-        'label_cols': torch.randint(low=0, high=1, size=(batch_size, output_dim)),
+        # 'label_cols': torch.randint(low=0, high=1, size=(batch_size, output_dim)),
         'spiral_mask': torch.rand((batch_size, 1, image_size, image_size)),
         'bar_mask': torch.rand((batch_size, 1, image_size, image_size))
     }
