@@ -20,16 +20,16 @@ from custom_layers import DownSample, UpSample, ConvBlock, ResNet
 
 class ZooBot3D(define_model.GenericLightningModule):
     def __init__(self,
-                 output_dim = 34,
+                #  output_dim = 34,
                  input_size = 128,
                  n_channels=3,
                  n_filters=32,
                  dim_mults=(1, 2, 4, 8),
                  n_classes=4,  # sets output dim 1 
                  drop_rates=(0,0,0.3,0.3),
-                 test_time_dropout=False,
-                 head_dropout=0.5,
-                 question_index_groups=None,
+                #  test_time_dropout=False,
+                #  head_dropout=0.5,
+                #  question_index_groups=None,
                  learning_rate=1e-3,
                  weight_decay=0.05,
                  use_vote_loss=True,
@@ -60,14 +60,15 @@ class ZooBot3D(define_model.GenericLightningModule):
 
         ## build classifier
         self.encoder_dim = get_encoder_dim(self.encoder, self.input_size, self.channels)
-        self.head = get_pytorch_dirichlet_head(self.encoder_dim,
-                                               output_dim,
-                                               test_time_dropout,
-                                               head_dropout)
-        # Losses - Set both separately then just add together? MSE for real seg maps, BXE for threshold
-        # TODO Not really sure how Torch parses the loss functions yet, need to handle the multiple outputs
-        # Mike: as long as make step returns a dict with 'loss' key, it should work automatically
-        self.dirichlet_loss = define_model.get_dirichlet_loss_func(question_index_groups)
+        # if self.use_vote_loss:
+        #     self.head = get_pytorch_dirichlet_head(self.encoder_dim,
+        #                                         output_dim,
+        #                                         test_time_dropout,
+        #                                         head_dropout)
+            # Losses - Set both separately then just add together? MSE for real seg maps, BXE for threshold
+            # TODO Not really sure how Torch parses the loss functions yet, need to handle the multiple outputs
+            # Mike: as long as make step returns a dict with 'loss' key, it should work automatically
+            # self.dirichlet_loss = define_model.get_dirichlet_loss_func(question_index_groups)
         if self.seg_loss_metric == 'mse':
             self.seg_loss = F.mse_loss
         elif self.seg_loss_metric == 'l1':
@@ -83,11 +84,12 @@ class ZooBot3D(define_model.GenericLightningModule):
 
         x, h = self.encoder(x)
 
-        z = self.head(x)
+        # z = self.head(x)
 
         y = self.decoder((x, h))
 
-        return z, y
+        # return z, y
+        return y
     
     def configure_optimizers(self):
         return torch.optim.AdamW(
@@ -103,10 +105,14 @@ class ZooBot3D(define_model.GenericLightningModule):
 
         # called with train, validation, test. Not called with predict (not a step)
 
-        pred_labels, pred_maps = self(batch['image'])  # forward pass of both encoder and decoder
-        loss = self.calculate_and_log_loss((pred_labels, pred_maps), batch, step_name)      
+        # pred_labels, pred_maps = self(batch['image'])  # forward pass of both encoder and decoder
+        # loss = self.calculate_and_log_loss((pred_labels, pred_maps), batch, step_name) 
+
+        pred_maps = self(batch['image'])
+        loss = self.calculate_and_log_loss(pred_maps, batch, step_name) 
+             
         outputs = {
-            'predictions': pred_labels,
+            # 'predictions': pred_labels,
             'predicted_maps': pred_maps,
             'loss': loss
         }
@@ -114,25 +120,26 @@ class ZooBot3D(define_model.GenericLightningModule):
         return outputs
 
     def calculate_and_log_loss(self, predictions, batch, step_name):
-        pred_labels, pred_maps = predictions
+        # pred_labels, pred_maps = predictions
+        pred_maps = predictions
         
         loss = 0
 
-        if self.use_vote_loss:
-            # self.loss_func returns shape of (galaxy, question), mean to ()
-            # dim=1 is the question dim, so sum over that
-            has_votes = torch.amax(batch['label_cols'], dim=1) > 0
-            if torch.any(has_votes > 0):
-                multiq_loss = self.dirichlet_loss(pred_labels[has_votes], batch['label_cols'][has_votes], sum_over_questions=False)
-                multiq_loss_reduced = torch.mean(multiq_loss)
-            else:
-                multiq_loss_reduced = 0
+        # if self.use_vote_loss:
+        #     # self.loss_func returns shape of (galaxy, question), mean to ()
+        #     # dim=1 is the question dim, so sum over that
+        #     has_votes = torch.amax(batch['label_cols'], dim=1) > 0
+        #     if torch.any(has_votes > 0):
+        #         multiq_loss = self.dirichlet_loss(pred_labels[has_votes], batch['label_cols'][has_votes], sum_over_questions=False)
+        #         multiq_loss_reduced = torch.mean(multiq_loss)
+        #     else:
+        #         multiq_loss_reduced = 0
                 
-            # optional extra logging
-            self.log(f'{step_name}/epoch_vote_loss:0', multiq_loss_reduced, on_epoch=True, on_step=False, sync_dist=True)
-            # self.log_loss_per_question(multiq_loss, prefix=step_name)
+        #     # optional extra logging
+        #     self.log(f'{step_name}/epoch_vote_loss:0', multiq_loss_reduced, on_epoch=True, on_step=False, sync_dist=True)
+        #     # self.log_loss_per_question(multiq_loss, prefix=step_name)
             
-            loss += (self.vote_loss_weighting * multiq_loss_reduced)
+        #     loss += (self.vote_loss_weighting * multiq_loss_reduced)
 
 
         if self.use_seg_loss:
@@ -165,9 +172,9 @@ class ZooBot3D(define_model.GenericLightningModule):
 
         return loss
         
-    def log_loss_per_question(self, multiq_loss, prefix):
-        for question_n in range(multiq_loss.shape[1]):
-            self.log(f'{prefix}/epoch_questions/question_{question_n}_loss:0', torch.mean(multiq_loss[:, question_n]), on_epoch=True, on_step=False, sync_dist=True)
+    # def log_loss_per_question(self, multiq_loss, prefix):
+    #     for question_n in range(multiq_loss.shape[1]):
+    #         self.log(f'{prefix}/epoch_questions/question_{question_n}_loss:0', torch.mean(multiq_loss[:, question_n]), on_epoch=True, on_step=False, sync_dist=True)
             
     def log_loss_per_seg_map_name(self, seg_loss, prefix):
         # log seg maps individually
@@ -211,22 +218,22 @@ class ZooBot3D(define_model.GenericLightningModule):
             )
 
 
-class ZoobotDummy(ZooBot3D):
+# class ZoobotDummy(ZooBot3D):
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+#     def __init__(self, **kwargs):
+#         super().__init__(**kwargs)
         
-        self.dummy_encoder = define_model.get_pytorch_encoder(
-                'efficientnet_b0',
-                3,
-                use_imagenet_weights=False
-            )
+#         self.dummy_encoder = define_model.get_pytorch_encoder(
+#                 'efficientnet_b0',
+#                 3,
+#                 use_imagenet_weights=False
+#             )
         
-    def __forward__(self, x):
-        x = self.dummy_encoder(x)
-        z = self.head(x)
-        y = torch.random(x.shape)  # 'decoded' image
-        return y, z
+#     def __forward__(self, x):
+#         x = self.dummy_encoder(x)
+#         z = self.head(x)
+#         y = torch.random(x.shape)  # 'decoded' image
+#         return y, z
         
 
     
