@@ -84,13 +84,13 @@ class ZooBot3D(define_model.GenericLightningModule):
         self.decoder = pytorch_decoder_module(self.in_out,
                                               n_classes)
                      
-    def forward(self, x):
+    def forward(self, image_batch):
 
-        x, h = self.encoder(x)
+        x, h = self.encoder(image_batch)
 
         # z = self.head(x)
 
-        y = self.decoder((x, h))
+        y = self.decoder((x, h, image_batch))
 
         # return z, y
         return y
@@ -278,8 +278,6 @@ class pytorch_encoder_module(nn.Module):
 
     def forward(self, x):
         h = [] # collect the skip conection outputs for the decoder
-        # add image itself as a skip connection
-        h.append(x)
 
         for rn1, rn2, drop, down in self.downs:
             x = rn1(x)
@@ -378,8 +376,7 @@ class pytorch_decoder_module(nn.Module):
 
     def forward(self, inputs):
 
-        x, h = inputs # split the encoder output and skip connections
-        input_image = h.pop(0).mean(axis=1, keepdims=True) # average over channels
+        x, h, image_batch = inputs # split the encoder output and skip connections
 
         for rn1, rn2, up in self.ups:
             x = torch.cat((x, h.pop()), dim=1) # adding skip connection as extra channel
@@ -387,8 +384,7 @@ class pytorch_decoder_module(nn.Module):
             x = rn2(x)
             x = up(x)
 
-        print(x.shape, input_image.shape)
-        x = F.relu(x) * input_image
+        x = F.relu(x) * image_batch.mean(axis=1, keepdims=True)
 
         return self.final_conv(x)
 
