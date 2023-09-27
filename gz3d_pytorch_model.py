@@ -216,30 +216,6 @@ class ZooBot3D(define_model.GenericLightningModule):
                     step=step
                 )
 
-                predicted_maps = outputs['predicted_maps'][has_mask][:max_images]
-                
-                predicted_mask_image = wandb.Image(
-                    torchvision.utils.make_grid(
-                        # mean = a / (a+b)
-                        get_beta_mean(predicted_maps[:, mask_index],  predicted_maps[:, mask_index+1])
-                    ),
-                )    
-                self.trainer.logger.experiment.log(
-                    {f"{step_name}_images/{mask_name}_mask_predicted": predicted_mask_image},
-                    step=step
-                )
-
-                uncertainty_mask_image = wandb.Image(
-                    torchvision.utils.make_grid(
-                        # mean = a / (a+b)
-                        get_beta_variance(predicted_maps[:, mask_index], predicted_maps[:, mask_index+1])
-                    ),
-                )    
-                self.trainer.logger.experiment.log(
-                    {f"{step_name}_images/{mask_name}_mask_uncertainty": uncertainty_mask_image},
-                    step=step
-                )
-
                 true_mask_image = wandb.Image(
                     torchvision.utils.make_grid(outputs[f'{mask_name}_mask'][has_mask][:max_images]),
                 )    
@@ -247,6 +223,37 @@ class ZooBot3D(define_model.GenericLightningModule):
                     {f"{step_name}_images/{mask_name}_mask_true": true_mask_image},
                     step=step
                 )
+
+                predicted_maps = outputs['predicted_maps'][has_mask][:max_images]
+                
+                if self.seg_loss_metric == 'beta_binomial':
+                    mean_images = get_beta_mean(predicted_maps[:, mask_index:mask_index+1],  predicted_maps[:, mask_index+1:mask_index+2])
+                    predicted_mask_image = wandb.Image(torchvision.utils.make_grid(mean_images)) 
+                    self.trainer.logger.experiment.log(
+                        {f"{step_name}_images/{mask_name}_mask_predicted": predicted_mask_image},
+                        step=step
+                    )
+
+                    uncertainty_mask_image = wandb.Image(
+                        torchvision.utils.make_grid(
+                            # mean = a / (a+b)
+                            get_beta_variance(predicted_maps[:, mask_index:mask_index+1], predicted_maps[:, mask_index+1:mask_index+2])
+                        ),
+                    )    
+                    self.trainer.logger.experiment.log(
+                        {f"{step_name}_images/{mask_name}_mask_uncertainty": uncertainty_mask_image},
+                        step=step
+                    )
+                else:
+                    predicted_mask_image = wandb.Image(
+                        torchvision.utils.make_grid(predicted_maps[:, mask_index:mask_index+1])
+                    )    
+                    self.trainer.logger.experiment.log(
+                        {f"{step_name}_images/{mask_name}_mask_predicted": predicted_mask_image},
+                        step=step
+                    )
+
+
 
 
 # class ZoobotDummy(ZooBot3D):
