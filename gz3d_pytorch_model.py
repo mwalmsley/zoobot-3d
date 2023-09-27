@@ -198,7 +198,8 @@ class ZooBot3D(define_model.GenericLightningModule):
         if step % 100 == 0:  # for speed
 
             max_images = 5
-            for mask_name, mask_index in [('spiral', 0), ('bar', 1)]:
+            # for mask_name, mask_index in [('spiral', 0), ('bar', 1)]:
+            for mask_name, mask_index in [('spiral', 0), ('bar', 2)]:
 
                 # B1HW shape
                 has_mask = torch.amax(outputs[f'{mask_name}_mask'], dim=(1, 2, 3)) > 0
@@ -215,11 +216,27 @@ class ZooBot3D(define_model.GenericLightningModule):
                     step=step
                 )
 
+                predicted_maps = outputs['predicted_maps'][has_mask][:max_images]
+                
                 predicted_mask_image = wandb.Image(
-                    torchvision.utils.make_grid(outputs['predicted_maps'][has_mask][:max_images, mask_index:mask_index+1]),
+                    torchvision.utils.make_grid(
+                        # mean = a / (a+b)
+                        get_beta_mean(predicted_maps[:, mask_index],  predicted_maps[:, mask_index+1])
+                    ),
                 )    
                 self.trainer.logger.experiment.log(
                     {f"{step_name}_images/{mask_name}_mask_predicted": predicted_mask_image},
+                    step=step
+                )
+
+                uncertainty_mask_image = wandb.Image(
+                    torchvision.utils.make_grid(
+                        # mean = a / (a+b)
+                        get_beta_variance(predicted_maps[:, mask_index], predicted_maps[:, mask_index+1])
+                    ),
+                )    
+                self.trainer.logger.experiment.log(
+                    {f"{step_name}_images/{mask_name}_mask_uncertainty": uncertainty_mask_image},
                     step=step
                 )
 
@@ -344,6 +361,11 @@ def get_encoder_dim(encoder, input_size, channels):
 
 #     return nn.Sequential(*modules_to_use)
 
+def get_beta_mean(a, b):
+    return a / (a + b)
+
+def get_beta_variance(a, b):
+    return (a * b) / ((a + b)**2 * (a + b + 1))
 
 # decoder clss, include the skip connections — how to save on GPU cycles by not forward passing unecessarily?
 
@@ -412,11 +434,11 @@ def beta_binomial_loss_func(segmaps, pred_maps, reduction, epsilon=1e-5):
     spiral_pred_c1, spiral_pred_c2 = pred_maps[:, 0], pred_maps[:, 1]
     bar_pred_c1, bar_pred_c2 = pred_maps[:, 2], pred_maps[:, 3]
 
-    
     spiral_loss = BetaBinomial(spiral_pred_c1, spiral_pred_c2, total_count=15, validate_args=True).log_prob(spiral_maps)
     bar_loss = BetaBinomial(bar_pred_c1, bar_pred_c2, total_count=15, validate_args=True).log_prob(bar_maps)
 
-    return torch.stack([spiral_loss, bar_loss], dim=1)  # stack loss like segmaps
+    # important minus sign, maximise log prob == minimise negative log prob
+    return -torch.stack([spiral_loss, bar_loss], dim=1)  # stack loss like segmaps
 
     # return spiral_loss + bar_loss
     
