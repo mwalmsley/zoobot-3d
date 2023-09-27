@@ -33,3 +33,4 @@ parameters:
 
   batch_size:
     values: [64, 128, 256]
+  
