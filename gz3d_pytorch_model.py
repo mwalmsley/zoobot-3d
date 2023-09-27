@@ -25,9 +25,11 @@ class ZooBot3D(define_model.GenericLightningModule):
                  input_size = 128,
                  n_channels=3,
                  n_filters=32,
-                 dim_mults=(1, 2, 4, 8),
+                #  dim_mults=(1, 2, 4, 8),
+                dim_mults=(1, 2, 4),
                  n_classes=4,  # sets output dim 1 
-                 drop_rates=(0,0,0.3,0.3),
+                #  drop_rates=(0,0,0.3,0.3),
+                drop_rates=(0,0,0.3),
                 #  test_time_dropout=False,
                 #  head_dropout=0.5,
                 #  question_index_groups=None,
@@ -210,53 +212,53 @@ class ZooBot3D(define_model.GenericLightningModule):
                 has_mask = torch.amax(outputs[f'{mask_name}_mask'], dim=(1, 2, 3)) > 0
                 if torch.sum(has_mask) == 0:
                     continue  # on to the next, don't bother with this one
-
-                galaxy_image = wandb.Image(
-                    torchvision.utils.make_grid(outputs['image'][has_mask][:max_images])
-                )   
-                # https://docs.wandb.ai/guides/integrations/lightning#log-images-text-and-more
-                # https://github.com/Lightning-AI/lightning/discussions/6723 
-                self.trainer.logger.experiment.log(
-                    {f"{step_name}_images/{mask_name}_galaxy_image": galaxy_image},
-                    step=step
-                )
-
-                true_mask_image = wandb.Image(
-                    torchvision.utils.make_grid(outputs[f'{mask_name}_mask'][has_mask][:max_images]),
-                )    
-                self.trainer.logger.experiment.log(
-                    {f"{step_name}_images/{mask_name}_mask_true": true_mask_image},
-                    step=step
-                )
-
-                predicted_maps = outputs['predicted_maps'][has_mask][:max_images]
-                
-                if self.seg_loss_metric == 'beta_binomial':
-                    mean_images = get_beta_mean(predicted_maps[:, mask_index:mask_index+1],  predicted_maps[:, mask_index+1:mask_index+2])
-                    predicted_mask_image = wandb.Image(torchvision.utils.make_grid(mean_images)) 
-                    self.trainer.logger.experiment.log(
-                        {f"{step_name}_images/{mask_name}_mask_predicted": predicted_mask_image},
-                        step=step
-                    )
-
-                    uncertainty_mask_image = wandb.Image(
-                        torchvision.utils.make_grid(
-                            # mean = a / (a+b)
-                            get_beta_variance(predicted_maps[:, mask_index:mask_index+1], predicted_maps[:, mask_index+1:mask_index+2])
-                        ),
-                    )    
-                    self.trainer.logger.experiment.log(
-                        {f"{step_name}_images/{mask_name}_mask_uncertainty": uncertainty_mask_image},
-                        step=step
-                    )
                 else:
-                    predicted_mask_image = wandb.Image(
-                        torchvision.utils.make_grid(predicted_maps[:, mask_index:mask_index+1])
-                    )    
+                    galaxy_image = wandb.Image(
+                        torchvision.utils.make_grid(outputs['image'][has_mask][:max_images])
+                    )   
+                    # https://docs.wandb.ai/guides/integrations/lightning#log-images-text-and-more
+                    # https://github.com/Lightning-AI/lightning/discussions/6723 
                     self.trainer.logger.experiment.log(
-                        {f"{step_name}_images/{mask_name}_mask_predicted": predicted_mask_image},
+                        {f"{step_name}_images/{mask_name}_galaxy_image": galaxy_image},
                         step=step
                     )
+
+                    true_mask_image = wandb.Image(
+                        torchvision.utils.make_grid(outputs[f'{mask_name}_mask'][has_mask][:max_images]),
+                    )    
+                    self.trainer.logger.experiment.log(
+                        {f"{step_name}_images/{mask_name}_mask_true": true_mask_image},
+                        step=step
+                    )
+
+                    predicted_maps = outputs['predicted_maps'][has_mask][:max_images]
+                    
+                    if self.seg_loss_metric == 'beta_binomial':
+                        mean_images = get_beta_mean(predicted_maps[:, mask_index:mask_index+1],  predicted_maps[:, mask_index+1:mask_index+2])
+                        predicted_mask_image = wandb.Image(torchvision.utils.make_grid(mean_images)) 
+                        self.trainer.logger.experiment.log(
+                            {f"{step_name}_images/{mask_name}_mask_predicted": predicted_mask_image},
+                            step=step
+                        )
+
+                        uncertainty_mask_image = wandb.Image(
+                            torchvision.utils.make_grid(
+                                # mean = a / (a+b)
+                                get_beta_variance(predicted_maps[:, mask_index:mask_index+1], predicted_maps[:, mask_index+1:mask_index+2])
+                            ),
+                        )    
+                        self.trainer.logger.experiment.log(
+                            {f"{step_name}_images/{mask_name}_mask_uncertainty": uncertainty_mask_image},
+                            step=step
+                        )
+                    else:
+                        predicted_mask_image = wandb.Image(
+                            torchvision.utils.make_grid(predicted_maps[:, mask_index:mask_index+1])
+                        )    
+                        self.trainer.logger.experiment.log(
+                            {f"{step_name}_images/{mask_name}_mask_predicted": predicted_mask_image},
+                            step=step
+                        )
 
 
 
