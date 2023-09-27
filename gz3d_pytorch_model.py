@@ -8,6 +8,7 @@ from torch.nn import functional as F
 import wandb
 import torchvision
 import pytorch_lightning as pl
+from pyro.distributions import BetaBinomial
 # from torchmetrics import Accuracy
 
 # re-using from Zoobot
@@ -40,6 +41,7 @@ class ZooBot3D(define_model.GenericLightningModule):
                  skip_connection_weighting=1.,
                  ):
         super().__init__()
+        self.n_classes = n_classes
         self.channels = n_channels
         self.input_size = input_size
         self.learning_rate = learning_rate
@@ -77,12 +79,15 @@ class ZooBot3D(define_model.GenericLightningModule):
             self.seg_loss = F.mse_loss
         elif self.seg_loss_metric == 'l1':
             self.seg_loss = F.l1_loss
+        elif self.seg_loss_metric == 'beta_binomial':
+            assert self.n_classes == 4
+            self.seg_loss = beta_binomial_loss_func
         else:
             raise ValueError(self.seg_loss_metric)
 
         # build decoder
         self.decoder = pytorch_decoder_module(self.in_out,
-                                              n_classes)
+                                              self.n_classes)
                      
     def forward(self, x):
 
@@ -389,7 +394,35 @@ class pytorch_decoder_module(nn.Module):
         # print(x.shape)
         # exit()
 
-        return self.final_conv(x)
+        x = self.final_conv(x) + 1e-10
+
+        # if self.seg_loss_metric == 'beta_binomial':
+            # could use efficientnet_custom.ScaledSigmoid. But relu should work.
+        # else:
+        return x
+    
+def beta_binomial_loss_func(segmaps, pred_maps, reduction):
+    
+    # set n_classes = 4 for 4 output channels
+    # assert self.n_classes == 4
+
+    # interpret first two channels as spiral concentration1/2
+    # second two as bars
+    
+    recovered_masks = (15 * segmaps).to(int)  # back to counts
+    # unstack spiral/bar again
+    spiral_maps, bar_maps = recovered_masks[:, 0], recovered_masks[:, 1]
+    spiral_pred_c1, spiral_pred_c2 = pred_maps[:, 0], pred_maps[:, 1]
+    bar_pred_c1, bar_pred_c2 = pred_maps[:, 2], pred_maps[:, 3]
+
+    
+    spiral_loss = BetaBinomial(spiral_pred_c1, spiral_pred_c2, total_count=15, validate_args=True).log_prob(spiral_maps)
+    bar_loss = BetaBinomial(bar_pred_c1, bar_pred_c2, total_count=15, validate_args=True).log_prob(bar_maps)
+
+    return torch.stack([spiral_loss, bar_loss], dim=1)  # stack loss like segmaps
+
+    # return spiral_loss + bar_loss
+    
 
 
 if __name__ == '__main__':

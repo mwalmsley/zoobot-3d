@@ -11,7 +11,7 @@ loss_to_monitor: 'validation/epoch_seg_loss:0'
 use_seg_loss: True
 seg_loss_weighting: 1
 # vote_loss_weighting: 1
-seg_loss_metric: l1  # changed from MSE
+seg_loss_metric: l1  # changed from MSE, can also be beta_binomial
 use_dummy_encoder: False
 skip_connection_weighting: 100.
 

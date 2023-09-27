@@ -183,7 +183,8 @@ def train(config : omegaconf.DictConfig) -> None:
     # else:
     model = gz3d_pytorch_model.ZooBot3D(
         input_size=config.image_size,
-        n_classes=2,  # spiral segmap, bar segmap
+        # n_classes=2,  # spiral segmap, bar segmap
+        n_classes=4, # 2 beta params each
         # output_dim=len(schema.label_cols),
         # question_index_groups=schema.question_index_groups,
         # use_vote_loss=config.use_vote_loss,
@@ -282,7 +283,8 @@ def default_segmentation_transforms(
     crop_scale_bounds=(0.7, 0.8),
     crop_ratio_bounds=(0.9, 1.1),
     resize_after_crop=224, 
-    pytorch_greyscale=False
+    pytorch_greyscale=False,
+    interpolation=1
     ) -> typing.Dict[str, typing.Any]:
 
     transforms_to_apply = [
@@ -297,15 +299,14 @@ def default_segmentation_transforms(
         ]
 
     transforms_to_apply += [
-        A.Rotate(limit=180, interpolation=1,
+        A.Rotate(limit=180, interpolation=interpolation,
                     always_apply=True, border_mode=0, value=0),
         A.RandomResizedCrop(
             height=resize_after_crop,  # after crop resize
             width=resize_after_crop,
             scale=crop_scale_bounds,  # crop factor
             ratio=crop_ratio_bounds,  # crop aspect ratio
-            # interpolation=1,
-            interpolation=cv2.INTER_NEAREST,  # new, to preserve segmap 
+            interpolation=interpolation,
             always_apply=True
         ),  # new aspect ratio
         A.VerticalFlip(p=0.5),

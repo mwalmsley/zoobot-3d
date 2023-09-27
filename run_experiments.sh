@@ -1,3 +1,3 @@
 #!/bin/bash
 
-sbatch train.sh batch_size=128
+sbatch train.sh seg_loss_metric=beta_binomial
