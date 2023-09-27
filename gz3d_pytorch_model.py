@@ -412,12 +412,12 @@ def beta_binomial_loss_func(segmaps, pred_maps, reduction):
     recovered_masks = (15 * segmaps).to(int)  # back to counts
     # unstack spiral/bar again
     spiral_maps, bar_maps = recovered_masks[:, 0], recovered_masks[:, 1]
-    spiral_pred_c1, spiral_pred_c2 = pred_maps[:, 0], pred_maps[:, 1]
-    bar_pred_c1, bar_pred_c2 = pred_maps[:, 2], pred_maps[:, 3]
+    spiral_pred_c1, spiral_pred_c2 = pred_maps[:, 0], pred_maps[:, 2]
+    bar_pred_c1, bar_pred_c2 = pred_maps[:, 4], pred_maps[:, 6]
 
     
-    spiral_loss = BetaBinomial(spiral_pred_c1 + 1e-5, spiral_pred_c2 + 1e-5, total_count=15, validate_args=True).log_prob(spiral_maps)
-    bar_loss = BetaBinomial(bar_pred_c1 + 1e-5, bar_pred_c2 + 1e-5, total_count=15, validate_args=True).log_prob(bar_maps)
+    spiral_loss = BetaBinomial(spiral_pred_c1 + 1e-3, spiral_pred_c2 + 1e-3, total_count=15, validate_args=True).log_prob(spiral_maps)
+    bar_loss = BetaBinomial(bar_pred_c1 + 1e-3, bar_pred_c2 + 1e-3, total_count=15, validate_args=True).log_prob(bar_maps)
 
     return torch.stack([spiral_loss, bar_loss], dim=1)  # stack loss like segmaps
 
