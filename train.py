@@ -153,7 +153,8 @@ def train(config : omegaconf.DictConfig) -> None:
     # df[schema.label_cols] = df[schema.label_cols].where(~df['spiral_mask_exists'], 0)
     # logging.info(df[df['spiral_mask_exists']][schema.label_cols[0]])
 
-    log_every_n_steps = min(int(len(train_catalog) / config.batch_size), 100)
+    # log_every_n_steps = min(int(len(train_catalog) / config.batch_size), 100)
+    log_every_n_steps = 100  # stop train logging
     logging.info(f'Logging every {log_every_n_steps} steps')
 
     # oversampling
@@ -189,7 +190,8 @@ def train(config : omegaconf.DictConfig) -> None:
         # use_seg_loss=config.use_seg_loss,
         seg_loss_weighting=config.seg_loss_weighting,
         # vote_loss_weighting=config.vote_loss_weighting,
-        seg_loss_metric=config.seg_loss_metric
+        seg_loss_metric=config.seg_loss_metric,
+        skip_connection_weighting=config.skip_connection_weighting
     )
 
     datamodule = pytorch_datamodule.SegmentationDataModule(

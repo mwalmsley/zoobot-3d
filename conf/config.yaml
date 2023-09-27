@@ -13,6 +13,7 @@ seg_loss_weighting: 1
 # vote_loss_weighting: 1
 seg_loss_metric: l1  # changed from MSE
 use_dummy_encoder: False
+skip_connection_weighting: 100.
 
 # gz3d_galaxies_only: False
 # spiral_galaxies_only: True

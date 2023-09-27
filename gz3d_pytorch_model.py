@@ -36,7 +36,8 @@ class ZooBot3D(define_model.GenericLightningModule):
                 #  use_seg_loss=True,
                  seg_loss_weighting=1.,
                 #  vote_loss_weighting=1.,
-                 seg_loss_metric='mse'
+                 seg_loss_metric='mse',
+                 skip_connection_weighting=1.,
                  ):
         super().__init__()
         self.channels = n_channels
@@ -50,13 +51,16 @@ class ZooBot3D(define_model.GenericLightningModule):
         # self.vote_loss_weighting = vote_loss_weighting
         self.seg_loss_metric=seg_loss_metric
 
+        self.skip_connection_weighting = skip_connection_weighting
+
         dims = [self.channels, *map(lambda m: n_filters * m, dim_mults)]
         self.in_out = list(zip(dims[:-1], dims[1:]))
         self.drop_rates = drop_rates
 
         # build encoder model
         self.encoder = pytorch_encoder_module(self.in_out,
-                                              self.drop_rates)
+                                              self.drop_rates,
+                                              self.skip_connection_weighting)
 
         ## build classifier
         self.encoder_dim = get_encoder_dim(self.encoder, self.input_size, self.channels)
@@ -244,11 +248,14 @@ class pytorch_encoder_module(nn.Module):
     def __init__(self, 
                  in_out,
                  drop_rates,
+                 skip_connection_weighting=1.
                  ):
         super().__init__()
 
         self.downs = []
         num_resolutions = len(in_out)
+
+        self.skip_connection_weighting = skip_connection_weighting
 
         for ind, (dim_in, dim_out) in enumerate(in_out):
             is_last = ind >= (num_resolutions - 1)
@@ -267,6 +274,8 @@ class pytorch_encoder_module(nn.Module):
 
     def forward(self, x):
         h = [] # collect the skip conection outputs for the decoder
+        # add image itself as a skip connection
+        h.append(x)
 
         for rn1, rn2, drop, down in self.downs:
             x = rn1(x)
@@ -277,6 +286,10 @@ class pytorch_encoder_module(nn.Module):
 
         x = self.mid_block1(x)
         x = self.mid_block2(x)
+
+        # upweight skip connections coming from first encoder-block only (rn1 i.e. resnet1)
+        # h = [h_i * self.skip_connection_weighting for h_i in h]
+        # h[0] = h[0] * self.skip_connection_weighting
 
         return x, h # return midblock output and skip connections
 
@@ -361,13 +374,17 @@ class pytorch_decoder_module(nn.Module):
 
     def forward(self, inputs):
 
-        x, h = inputs # plit the encoder output and skip connections
+        x, h = inputs # split the encoder output and skip connections
+        input_image = h.pop(0).mean(axis=1, keepdims=True) # average over channels
 
         for rn1, rn2, up in self.ups:
-            x = torch.cat((x, h.pop()), dim=1)
+            x = torch.cat((x, h.pop()), dim=1) # adding skip connection as extra channel
             x = rn1(x)
             x = rn2(x)
             x = up(x)
+
+        print(x.shape, input_image.shape)
+        x = F.relu(x) * input_image
 
         return self.final_conv(x)
 
