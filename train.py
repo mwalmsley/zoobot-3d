@@ -138,9 +138,9 @@ def main():
         num_workers = 12
         accelerator = 'gpu'
         devices = 1
-        strategy = 'auto'
+        # strategy = 'auto'
         # devices = 2
-        # strategy = 'ddp'
+        strategy = 'ddp'
         # just in case of ddp weirdness
         # since I'm not using the second GPU anyway
         precision = '16-mixed'
