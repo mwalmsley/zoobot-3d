@@ -188,39 +188,43 @@ class ZooBot3D(define_model.GenericLightningModule):
             self.log(f'{prefix}/epoch_seg_maps/seg_map_{seg_map_class_index}_loss:0', torch.mean(seg_loss[:, seg_map_class_index, :, :]), on_epoch=True, on_step=False, sync_dist=True)
 
     def log_outputs(self, outputs, step_name):
-        max_images = 5
-        for mask_name, mask_index in [('spiral', 0), ('bar', 1)]:
 
-            # B1HW shape
-            has_mask = torch.amax(outputs[f'{mask_name}_mask'], dim=(1, 2, 3)) > 0
-            if torch.sum(has_mask) == 0:
-                continue  # on to the next, don't bother with this one
+        step = self.global_step
+        if step % 100 == 0:  # for speed
 
-            galaxy_image = wandb.Image(
-                torchvision.utils.make_grid(outputs['image'][has_mask][:max_images])
-            )   
-            # https://docs.wandb.ai/guides/integrations/lightning#log-images-text-and-more
-            # https://github.com/Lightning-AI/lightning/discussions/6723 
-            self.trainer.logger.experiment.log(
-                {f"{step_name}_images/{mask_name}_galaxy_image": galaxy_image},
-                step=self.global_step
-            )
+            max_images = 5
+            for mask_name, mask_index in [('spiral', 0), ('bar', 1)]:
 
-            predicted_mask_image = wandb.Image(
-                torchvision.utils.make_grid(outputs['predicted_maps'][has_mask][:max_images, mask_index:mask_index+1]),
-            )    
-            self.trainer.logger.experiment.log(
-                {f"{step_name}_images/{mask_name}_mask_predicted": predicted_mask_image},
-                step=self.global_step
-            )
+                # B1HW shape
+                has_mask = torch.amax(outputs[f'{mask_name}_mask'], dim=(1, 2, 3)) > 0
+                if torch.sum(has_mask) == 0:
+                    continue  # on to the next, don't bother with this one
 
-            true_mask_image = wandb.Image(
-                torchvision.utils.make_grid(outputs[f'{mask_name}_mask'][has_mask][:max_images]),
-            )    
-            self.trainer.logger.experiment.log(
-                {f"{step_name}_images/{mask_name}_mask_true": true_mask_image},
-                step=self.global_step
-            )
+                galaxy_image = wandb.Image(
+                    torchvision.utils.make_grid(outputs['image'][has_mask][:max_images])
+                )   
+                # https://docs.wandb.ai/guides/integrations/lightning#log-images-text-and-more
+                # https://github.com/Lightning-AI/lightning/discussions/6723 
+                self.trainer.logger.experiment.log(
+                    {f"{step_name}_images/{mask_name}_galaxy_image": galaxy_image},
+                    step=step
+                )
+
+                predicted_mask_image = wandb.Image(
+                    torchvision.utils.make_grid(outputs['predicted_maps'][has_mask][:max_images, mask_index:mask_index+1]),
+                )    
+                self.trainer.logger.experiment.log(
+                    {f"{step_name}_images/{mask_name}_mask_predicted": predicted_mask_image},
+                    step=step
+                )
+
+                true_mask_image = wandb.Image(
+                    torchvision.utils.make_grid(outputs[f'{mask_name}_mask'][has_mask][:max_images]),
+                )    
+                self.trainer.logger.experiment.log(
+                    {f"{step_name}_images/{mask_name}_mask_true": true_mask_image},
+                    step=step
+                )
 
 
 # class ZoobotDummy(ZooBot3D):
