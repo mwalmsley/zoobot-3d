@@ -184,7 +184,7 @@ def train(config : omegaconf.DictConfig) -> None:
     model = gz3d_pytorch_model.ZooBot3D(
         input_size=config.image_size,
         # n_classes=2,  # spiral segmap, bar segmap
-        n_classes=4, # 2 beta params each
+        n_classes=config.n_classes, # 2 beta params each
         # output_dim=len(schema.label_cols),
         # question_index_groups=schema.question_index_groups,
         # use_vote_loss=config.use_vote_loss,

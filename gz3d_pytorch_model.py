@@ -369,11 +369,15 @@ class pytorch_decoder_module(nn.Module):
             )
 
 
+        # if self.seg_loss_metric == 'beta_binomial':
+        final_conv_act = efficientnet_custom.ScaledSigmoid()
+        # else:
+            # final_conv_act = nn.ReLU()
         self.final_conv = nn.Sequential(ConvBlock(in_out[0][1], in_out[0][0]),
             nn.Mish(),
             # one output filter per class, stride of 1
             nn.Conv2d(in_out[0][0], n_classes, 1, padding='same'),
-            nn.ReLU(),
+            final_conv_act,
         )
 
         self.ups = nn.ModuleList(self.ups)
@@ -389,35 +393,28 @@ class pytorch_decoder_module(nn.Module):
             x = rn2(x)
             x = up(x)
 
-        # print(x.shape)
-        # x = F.relu(x) * image_batch.mean(axis=1, keepdims=True)
-        # print(x.shape)
-        # exit()
+        return self.final_conv(x) + 1e-10
 
-        x = self.final_conv(x) + 1e-10
 
-        # if self.seg_loss_metric == 'beta_binomial':
-            # could use efficientnet_custom.ScaledSigmoid. But relu should work.
-        # else:
-        return x
-    
-def beta_binomial_loss_func(segmaps, pred_maps, reduction):
+def beta_binomial_loss_func(segmaps, pred_maps, reduction, epsilon=1e-5):
     
     # set n_classes = 4 for 4 output channels
     # assert self.n_classes == 4
 
     # interpret first two channels as spiral concentration1/2
     # second two as bars
+
+    pred_maps = pred_maps + epsilon
     
     recovered_masks = (15 * segmaps).to(int)  # back to counts
     # unstack spiral/bar again
     spiral_maps, bar_maps = recovered_masks[:, 0], recovered_masks[:, 1]
-    spiral_pred_c1, spiral_pred_c2 = pred_maps[:, 0], pred_maps[:, 2]
-    bar_pred_c1, bar_pred_c2 = pred_maps[:, 4], pred_maps[:, 6]
+    spiral_pred_c1, spiral_pred_c2 = pred_maps[:, 0], pred_maps[:, 1]
+    bar_pred_c1, bar_pred_c2 = pred_maps[:, 2], pred_maps[:, 3]
 
     
-    spiral_loss = BetaBinomial(spiral_pred_c1 + 1e-3, spiral_pred_c2 + 1e-3, total_count=15, validate_args=True).log_prob(spiral_maps)
-    bar_loss = BetaBinomial(bar_pred_c1 + 1e-3, bar_pred_c2 + 1e-3, total_count=15, validate_args=True).log_prob(bar_maps)
+    spiral_loss = BetaBinomial(spiral_pred_c1, spiral_pred_c2, total_count=15, validate_args=True).log_prob(spiral_maps)
+    bar_loss = BetaBinomial(bar_pred_c1, bar_pred_c2, total_count=15, validate_args=True).log_prob(bar_maps)
 
     return torch.stack([spiral_loss, bar_loss], dim=1)  # stack loss like segmaps
 
