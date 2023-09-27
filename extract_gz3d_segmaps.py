@@ -84,8 +84,8 @@ if __name__ == '__main__':
     df['segmap_json_loc'] = base_dir + df['relative_segmap_json_loc']
     # TODO temp fix
     df['segmap_json_loc'] = df['segmap_json_loc'].str.replace('/segmaps/', '/segmaps/marks/')
-    df['spiral_mask_loc'] = base_dir + df['relative_spiral_mask_loc'].str.replace('/masks/', '/masks_constnorm/')
-    df['bar_mask_loc'] = base_dir + df['relative_bar_mask_loc'].str.replace('/masks/', '/masks_constnorm/')
+    df['spiral_mask_loc'] = base_dir + df['relative_spiral_mask_loc'].str.replace('/masks/', '/masks_integer/')
+    df['bar_mask_loc'] = base_dir + df['relative_bar_mask_loc'].str.replace('/masks/', '/masks_integer/')
 
     logging.info(df['gz3d_fits_loc'].iloc[0])
     logging.info(df['segmap_json_loc'].iloc[0])
