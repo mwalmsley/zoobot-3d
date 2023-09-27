@@ -194,7 +194,7 @@ def train(config : omegaconf.DictConfig) -> None:
         seg_loss_metric=config.seg_loss_metric,
         # skip_connection_weighting=config.skip_connection_weighting,
         # sweepable hparams
-        dim_mults=[config.dim_mults_0, config.dim_mults_1, config.dim_mults_2, config.dim_mults_3],
+        dim_mults=[config.dim_mult_0, config.dim_mult_1, config.dim_mult_2, config.dim_mult_3],
         drop_rates=[config.drop_rates_0, config.drop_rates_1, config.drop_rates_2, config.drop_rates_3],
         weight_decay=config.weight_decay
     )
