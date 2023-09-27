@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=segswp                # Job name
-#SBATCH --array=1-200%4
+#SBATCH --array=1-200%1
 #SBATCH --output=%x_%A_%a.log 
 #SBATCH --mem=0
 #SBATCH -c 24                                      # Job memory request
@@ -11,6 +11,6 @@
 
 # sbatch should run this to make the agent e.g. sbatch slurm/start_sweep_agent.sh
 
-/share/nas2/walml/miniconda3/envs/zoobot38_torch/bin/python -m wandb agent --count 1 jbca-ice/merger/n6kiqzr6
+/share/nas2/walml/miniconda3/envs/zoobot38_torch/bin/python -m wandb agent --count 1 jbca-ice/zoobot-3d/5sqsjjiv
 # agent will then run the shell script to create the python command
 
