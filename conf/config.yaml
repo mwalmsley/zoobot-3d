@@ -1,4 +1,4 @@
-random_state: 43
+random_state: 42
 debug: False
 # max_additional_galaxies: null  # i.e. None
 
@@ -12,7 +12,7 @@ use_seg_loss: True
 seg_loss_weighting: 1
 # vote_loss_weighting: 1
 seg_loss_metric: l1  # changed from MSE, can also be beta_binomial
-n_classes: 4
+n_classes: 2
 use_dummy_encoder: False
 skip_connection_weighting: 100.
 

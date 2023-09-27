@@ -77,17 +77,22 @@ class ZooBot3D(define_model.GenericLightningModule):
             # self.dirichlet_loss = define_model.get_dirichlet_loss_func(question_index_groups)
         if self.seg_loss_metric == 'mse':
             self.seg_loss = F.mse_loss
+            self.final_activation = 'relu'
         elif self.seg_loss_metric == 'l1':
             self.seg_loss = F.l1_loss
+            self.final_activation = 'relu'
         elif self.seg_loss_metric == 'beta_binomial':
-            assert self.n_classes == 4
+            self.n_classes == 4  # overrides
             self.seg_loss = beta_binomial_loss_func
+            self.final_activation = 'beta_binomial'
         else:
             raise ValueError(self.seg_loss_metric)
 
         # build decoder
         self.decoder = pytorch_decoder_module(self.in_out,
-                                              self.n_classes)
+                                              self.n_classes,
+                                              final_activation=self.final_activation
+                                            )
                      
     def forward(self, x):
 
@@ -166,11 +171,11 @@ class ZooBot3D(define_model.GenericLightningModule):
             seg_loss = self.seg_loss(seg_maps, pred_maps, reduction='none')
             seg_loss[~has_maps] = torch.nan  # set loss to 0 where no seg map exists (or could set preds to zero, or could index out)
             # seg loss has shape (batch, map_index)]
-            seg_loss_reduced = torch.nanmean(seg_loss[:, 0]) # spirals only as debugging
+            seg_loss_reduced = torch.nanmean(seg_loss)
 
             # optional extra logging (okay the first one is v. handy for early stopping, not optional really)
             self.log(f'{step_name}/epoch_seg_loss:0', seg_loss_reduced, on_epoch=True, on_step=False, sync_dist=True)
-            # self.log_loss_per_seg_map_name(seg_loss, prefix=step_name)
+            self.log_loss_per_seg_map_name(seg_loss, prefix=step_name)
         else:
             # logging.warning('No seg maps in batch, skipping seg loss')
             seg_loss_reduced = 0
@@ -190,7 +195,7 @@ class ZooBot3D(define_model.GenericLightningModule):
         # log seg maps individually
         for seg_map_class_index in range(seg_loss.shape[1]):  # first dim is the seg map index
             # mean over the batch and all pixels, for the current seg map index
-            self.log(f'{prefix}/epoch_seg_maps/seg_map_{seg_map_class_index}_loss:0', torch.mean(seg_loss[:, seg_map_class_index, :, :]), on_epoch=True, on_step=False, sync_dist=True)
+            self.log(f'{prefix}/epoch_seg_maps/seg_map_{seg_map_class_index}_loss', torch.mean(seg_loss[:, seg_map_class_index, :, :]), on_epoch=True, on_step=False, sync_dist=True)
 
     def log_outputs(self, outputs, step_name):
 
@@ -380,8 +385,11 @@ class pytorch_decoder_module(nn.Module):
     def __init__(self,
                  in_out,
                  n_classes,
+                 final_activation='relu'
                  ):
         super().__init__()
+
+        self.final_activation = final_activation
 
         self.ups = []
         num_resolutions = len(in_out)
@@ -398,10 +406,13 @@ class pytorch_decoder_module(nn.Module):
             )
 
 
-        # if self.seg_loss_metric == 'beta_binomial':
-        final_conv_act = efficientnet_custom.ScaledSigmoid()
-        # else:
-            # final_conv_act = nn.ReLU()
+        if self.final_activation == 'scaled_sigmoid':
+            final_conv_act = efficientnet_custom.ScaledSigmoid()
+        elif self.final_activation == 'relu':
+            final_conv_act = nn.ReLU()
+        else:
+            raise ValueError(self.final_activation)
+        
         self.final_conv = nn.Sequential(ConvBlock(in_out[0][1], in_out[0][0]),
             nn.Mish(),
             # one output filter per class, stride of 1
