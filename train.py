@@ -93,7 +93,7 @@ def main():
     parser.add_argument('--save-dir', dest='save_dir', default='results/models', type=str)
     parser.add_argument('--debug', dest='debug',
                         default=False, action='store_true')
-    parser.add_argument('--seed', dest='random_state', default=42, type=int)
+    parser.add_argument('--seed', dest='random_state', default=43, type=int)
     args = parser.parse_args()
 
     pl.seed_everything(args.random_state)
