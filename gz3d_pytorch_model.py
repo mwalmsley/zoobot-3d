@@ -22,14 +22,14 @@ from custom_layers import DownSample, UpSample, ConvBlock, ResNet
 class ZooBot3D(define_model.GenericLightningModule): 
     def __init__(self,
                 #  output_dim = 34,
-                 input_size = 128,
+                 input_size=128,
                  n_channels=3,
                  n_filters=32,
-                #  dim_mults=(1, 2, 4, 8),
-                dim_mults=(1, 2, 4),
-                 n_classes=4,  # sets output dim 1 
-                #  drop_rates=(0,0,0.3,0.3),
-                drop_rates=(0,0,0.3),
+                 dim_mults=[1, 2, 4, 8],
+                # dim_mults=(1, 2, 4),
+                 n_classes=4,  # sets output dim 1
+                 drop_rates=[0, 0, 0.3, 0.3],
+                # drop_rates=(0,0,0.3),
                 #  test_time_dropout=False,
                 #  head_dropout=0.5,
                 #  question_index_groups=None,
@@ -199,7 +199,7 @@ class ZooBot3D(define_model.GenericLightningModule):
         # log seg maps individually
         for seg_map_class_index in range(seg_loss.shape[1]):  # first dim is the seg map index
             # mean over the batch and all pixels, for the current seg map index
-            self.log(f'{prefix}/epoch_seg_maps/seg_map_{seg_map_class_index}_loss', torch.mean(seg_loss[:, seg_map_class_index, :, :]), on_epoch=True, on_step=False, sync_dist=True)
+            self.log(f'{prefix}/epoch_seg_maps/seg_map_{seg_map_class_index}_loss', torch.nanmean(seg_loss[:, seg_map_class_index, :, :]), on_epoch=True, on_step=False, sync_dist=True)
 
     def log_outputs(self, outputs, step_name):
 

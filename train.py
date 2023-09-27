@@ -191,8 +191,12 @@ def train(config : omegaconf.DictConfig) -> None:
         # use_seg_loss=config.use_seg_loss,
         seg_loss_weighting=config.seg_loss_weighting,
         # vote_loss_weighting=config.vote_loss_weighting,
-        seg_loss_metric=config.seg_loss_metric
-        # skip_connection_weighting=config.skip_connection_weighting
+        seg_loss_metric=config.seg_loss_metric,
+        # skip_connection_weighting=config.skip_connection_weighting,
+        # sweepable hparams
+        dim_mults=[config.dim_mults_0, config.dim_mults_1, config.dim_mults_2, config.dim_mults_3],
+        drop_rates=[config.drop_rates_0, config.drop_rates_1, config.drop_rates_2, config.drop_rates_3],
+        weight_decay=config.weight_decay
     )
 
     datamodule = pytorch_datamodule.SegmentationDataModule(

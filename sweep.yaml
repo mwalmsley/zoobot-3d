@@ -1,0 +1,35 @@
+project: zoobot-3d
+program: train.sh
+command: 
+  - /bin/sh
+  - ${program}
+method: bayes
+metric:
+  name: validation/epoch_seg_loss:0
+  goal: minimize
+parameters:
+  weight_decay:
+    min: 0.
+    max: 0.25
+  
+  # skip hparam on 0 level
+
+  dim_mult_1:
+    values: [2, 4]
+  dim_mult_2:
+    values: [2, 4]
+  dim_mult_3:
+    values: [2, 4, 8]
+
+  drop_rate_1:
+      min: 0.
+      max: 0.5
+  drop_rate_2:
+      min: 0.
+      max: 0.5
+  drop_rate_3:
+      min: 0.
+      max: 0.5
+
+  batch_size:
+    values: [64, 128, 256]
