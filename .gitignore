@@ -175,3 +175,6 @@ lighting_dir
 wandb
 results/models
 *.ckpt
+
+*.yaml
+.hydra
