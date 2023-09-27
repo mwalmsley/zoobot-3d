@@ -1,3 +1,3 @@
 #!/bin/bash
 
-sbatch train.sh"
+sbatch train.sh
