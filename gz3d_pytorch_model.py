@@ -41,7 +41,7 @@ class ZooBot3D(define_model.GenericLightningModule):
                 #  vote_loss_weighting=1.,
                  seg_loss_metric='mse',
                 #  skip_connection_weighting=1.,
-                iou_thresholds=[0., 3., 6.]
+                iou_thresholds=[0., 3.]
                  ):
         super().__init__()
         self.n_classes = n_classes
@@ -57,20 +57,12 @@ class ZooBot3D(define_model.GenericLightningModule):
         self.seg_loss_metric=seg_loss_metric
 
         self.iou_thresholds = iou_thresholds
-        self.train_iou_metrics = nn.ModuleList(
-            [PixelwiseIOU(threshold) for threshold in self.iou_thresholds]
-        )
-        self.val_iou_metrics = nn.ModuleList(
-            [PixelwiseIOU(threshold) for threshold in self.iou_thresholds]
-        )
-        self.test_iou_metrics = nn.ModuleList(
-            [PixelwiseIOU(threshold) for threshold in self.iou_thresholds]
-        )
-        self.iou_metric_lookup = {
-            'train': self.train_iou_metrics,
-            'validation': self.val_iou_metrics,
-            'test': self.test_iou_metrics
-        }
+        self.iou_metric_lookup = nn.ModuleDict()
+        for class_name in ['spiral', 'bar']:
+            for prefix in ['train', 'validation', 'test']:
+                self.iou_metric_lookup[class_name + '_' + prefix] = nn.ModuleList(
+                    [PixelwiseIOU(threshold) for threshold in self.iou_thresholds]
+                )
 
         # self.skip_connection_weighting = skip_connection_weighting
 
@@ -197,7 +189,7 @@ class ZooBot3D(define_model.GenericLightningModule):
             self.log(f'{step_name}/epoch_seg_loss:0', seg_loss_reduced, on_epoch=True, on_step=False, sync_dist=True)
             self.log_loss_per_seg_map_name(seg_loss, prefix=step_name)
 
-            self.calculate_and_log_iou_per_seg_map_name(seg_maps, pred_maps, prefix=step_name)
+            self.calculate_iou_per_seg_map_name(seg_maps, pred_maps, prefix=step_name)
         else:
             # logging.warning('No seg maps in batch, skipping seg loss')
             seg_loss_reduced = 0
@@ -223,26 +215,37 @@ class ZooBot3D(define_model.GenericLightningModule):
                 on_epoch=True, on_step=False, sync_dist=True
             )
                 
-    def calculate_and_log_iou_per_seg_map_name(self, seg_maps, pred_maps, prefix):
-        
-        for seg_map_class_index in range(pred_maps.shape[1]):  # first dim is the seg map index
-            has_maps_for_this_class = torch.amax(seg_maps[:, seg_map_class_index], dim=(1, 2)) > 0
-            iou_metrics = self.iou_metric_lookup[prefix]
+    def calculate_iou_per_seg_map_name(self, seg_maps, pred_maps, prefix):
+        for index, name in enumerate(['spiral' , 'bar']):  # first dim is the seg map index
+            has_maps_for_this_class = torch.amax(seg_maps[:, index], dim=(1, 2)) > 0
+            iou_metrics = self.iou_metric_lookup[name + '_' + prefix]
             for iou_metric in iou_metrics:
                 # update metric state
                 iou_metric.update(
-                    pred_maps[has_maps_for_this_class, seg_map_class_index],
-                    seg_maps[has_maps_for_this_class, seg_map_class_index]
+                    pred_maps[has_maps_for_this_class, index],
+                    seg_maps[has_maps_for_this_class, index]
                 )
 
-                # log metric state
+    def on_train_batch_end(self, outputs, *args):
+        self.log_outputs(outputs, 'train')
+        self.log_seg_map_iou_metrics('train')
+
+    def on_validation_batch_end(self, outputs, *args):
+        self.log_outputs(outputs, 'validation')
+        self.log_seg_map_iou_metrics('validation')
+
+    def log_seg_map_iou_metrics(self, prefix):
+        for name in ['spiral' , 'bar']: 
+            iou_metrics = self.iou_metric_lookup[name + '_' + prefix]
+            for iou_metric in iou_metrics:
                 self.log(
-                    f'{prefix}/epoch_seg_maps/seg_map_{seg_map_class_index}_iou_threshold_{iou_metric.threshold}',
+                    f'{prefix}/epoch_seg_maps/seg_map_{name}_iou_threshold_{iou_metric.threshold}',
                     iou_metric.compute(),
                     on_epoch=True, on_step=False, sync_dist=True
                 )
 
     def log_outputs(self, outputs, step_name):
+        # called on every *_batch_end
 
         step = self.global_step
         if step % 100 == 0:  # for speed
