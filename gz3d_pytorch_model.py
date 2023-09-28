@@ -226,12 +226,19 @@ class ZooBot3D(define_model.GenericLightningModule):
                     seg_maps[has_maps_for_this_class, index]
                 )
 
-    def on_train_epoch_end(self, outputs, *args):
+    def on_train_batch_end(self, *args):
+        pass
+
+    def on_validation_batch_end(self, outputs, *args):
         self.log_outputs(outputs, 'train')
+
+    def on_train_epoch_end(self):
         self.log_seg_map_iou_metrics('train')
 
-    def on_validation_epoch_end(self, outputs, *args):
+    def on_validation_batch_end(self, outputs, *args):
         self.log_outputs(outputs, 'validation')
+
+    def on_validation_epoch_end(self):
         self.log_seg_map_iou_metrics('validation')
 
     def log_seg_map_iou_metrics(self, prefix):
