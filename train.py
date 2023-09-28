@@ -107,6 +107,10 @@ def train(config : omegaconf.DictConfig) -> None:
     train_catalog, hidden_catalog = train_test_split(df, test_size=0.3, random_state=config.random_state)
     val_catalog, test_catalog = train_test_split(hidden_catalog, test_size=0.2/0.3, random_state=config.random_state)
 
+    # print(len(test_catalog))
+    # test_catalog.to_parquet(base_dir + 'data/test_catalog.parquet', index=False)
+    # exit()
+
     # new
     # we will ALWAYS evaluate (val/test) ONLY on ALL GZ3D galaxies with spiral masks
     # only the train data ever changes
