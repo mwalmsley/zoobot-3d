@@ -1,3 +1,4 @@
+from typing import Optional
 import pytorch_lightning as pl
 from torch.utils.data import DataLoader
 import pandas as pd
@@ -7,10 +8,10 @@ import pytorch_dataset
 class SegmentationDataModule(pl.LightningDataModule):
     def __init__(
             self,
-            train_catalog: pd.DataFrame,
-            val_catalog: pd.DataFrame,
-            test_catalog=None,
-            predict_catalog=None,
+            train_catalog: Optional[pd.DataFrame]=None,
+            val_catalog: Optional[pd.DataFrame]=None,
+            test_catalog: Optional[pd.DataFrame]=None,
+            predict_catalog: Optional[pd.DataFrame]=None,
             label_cols=None,
             transform=None,
             batch_size: int=32,
@@ -54,7 +55,7 @@ class SegmentationDataModule(pl.LightningDataModule):
             assert self.predict_catalog is not None
             self.predict_dataset = pytorch_dataset.SegmentationGalaxyDataset(
                 catalog=self.predict_catalog,
-                label_cols=None,
+                label_cols=self.label_cols,
                 transform=self.transform
             )
 

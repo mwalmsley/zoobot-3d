@@ -177,3 +177,6 @@ results/models
 *.ckpt
 .hydra
 *.zip
+data/sparcfire/results
+lightning_logs
+outputs

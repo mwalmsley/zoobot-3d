@@ -41,7 +41,7 @@ class ZooBot3D(define_model.GenericLightningModule):
                 #  vote_loss_weighting=1.,
                  seg_loss_metric='mse',
                 #  skip_connection_weighting=1.,
-                iou_thresholds=[0., 3.]
+                iou_thresholds=[0., 3*15/255.]
                  ):
         super().__init__()
         self.n_classes = n_classes
@@ -106,7 +106,7 @@ class ZooBot3D(define_model.GenericLightningModule):
                                               final_activation=self.final_activation
                                             )
                      
-    def forward(self, x):
+    def forward(self, x):  # x should be batch['image']
 
         x, h = self.encoder(x)
 
@@ -116,6 +116,9 @@ class ZooBot3D(define_model.GenericLightningModule):
 
         # return z, y
         return y
+    
+    def predict_step(self, batch, *args):
+        return self(batch['image'])
     
     def configure_optimizers(self):
         return torch.optim.AdamW(
