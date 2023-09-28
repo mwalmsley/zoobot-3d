@@ -1,13 +1,14 @@
 import typing
 import os
 import logging
-import argparse
+# import argparse
 import time
 
+import cv2
 import omegaconf
 import hydra
 # https://hydra.cc/docs/configure_hydra/intro/#accessing-the-hydra-config
-from hydra.core.hydra_config import HydraConfig
+# from hydra.core.hydra_config import HydraConfig
 
 import torch
 import pandas as pd
@@ -20,8 +21,8 @@ import wandb
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 
-from zoobot.shared import schemas
-from galaxy_datasets.shared import label_metadata
+# from zoobot.shared import schemas
+# from galaxy_datasets.shared import label_metadata
 
 from galaxy_datasets import transforms
 import gz3d_pytorch_model, pytorch_datamodule
@@ -46,10 +47,10 @@ def train(config : omegaconf.DictConfig) -> None:
 
     debug = config.debug
     if debug or on_local:
-        config.max_additional_galaxies = 500
-        config.gz3d_galaxies_only = True
-        config.spiral_galaxies_only = True
-        config.oversampling_ratio = 1
+        # config.max_additional_galaxies = 500
+        # config.gz3d_galaxies_only = True
+        # config.spiral_galaxies_only = True
+        # config.oversampling_ratio = 1
         config.max_epochs = 2
         config.patience = 2
         config.image_size = 128
@@ -63,14 +64,14 @@ def train(config : omegaconf.DictConfig) -> None:
         if config.precision == '16-mixed':
             torch.set_float32_matmul_precision('medium')
 
-    if config.schema_name == 'desi_dr5':
-        schema = schemas.decals_dr5_ortho_schema  # new - just DR5
-    elif config.schema_name == 'desi_all':
-        schema = schemas.decals_all_campaigns_ortho_schema
-    elif config.schema_name == 'desi_and_gz2':
-        schema = desi_and_gz2_schema()
-    else:
-        raise ValueError(config.schema_name)
+    # if config.schema_name == 'desi_dr5':
+    #     schema = schemas.decals_dr5_ortho_schema  # new - just DR5
+    # elif config.schema_name == 'desi_all':
+    #     schema = schemas.decals_all_campaigns_ortho_schema
+    # elif config.schema_name == 'desi_and_gz2':
+    #     schema = desi_and_gz2_schema()
+    # else:
+    #     raise ValueError(config.schema_name)
 
     wandb.config = omegaconf.OmegaConf.to_container(
         config, resolve=True, throw_on_missing=True
@@ -95,53 +96,54 @@ def train(config : omegaconf.DictConfig) -> None:
 
     # for all datasets, only select galaxies with either spiral masks OR votes
     # (this should be all of them as I outer joined with the vote catalog)
-    has_votes = df[schema.label_cols].sum(axis=1) > 0
-    if not any(has_votes):
-        logging.warning('No galaxies with votes found')
-    df = df[df['spiral_mask_exists'] | has_votes].reset_index(drop=True)
+    # has_votes = df[schema.label_cols].sum(axis=1) > 0
+    # if not any(has_votes):
+    #     logging.warning('No galaxies with votes found')
+    # df = df[df['spiral_mask_exists'] | has_votes].reset_index(drop=True)
 
     logging.info(f'Galaxies in catalog: {len(df)}')
 
+    df = df.query('spiral_mask_exists')  # new, simpler version
     train_catalog, hidden_catalog = train_test_split(df, test_size=0.3, random_state=config.random_state)
     val_catalog, test_catalog = train_test_split(hidden_catalog, test_size=0.2/0.3, random_state=config.random_state)
 
     # new
     # we will ALWAYS evaluate (val/test) ONLY on ALL GZ3D galaxies with spiral masks
     # only the train data ever changes
-    val_catalog = val_catalog.query('spiral_mask_exists')
-    test_catalog = test_catalog.query('spiral_mask_exists')
+    # val_catalog = val_catalog.query('spiral_mask_exists')
+    # test_catalog = test_catalog.query('spiral_mask_exists')
 
     # adjust train catalog according to config
-    if config.gz3d_galaxies_only:
-        train_catalog = train_catalog.query('spiral_mask_exists')
-        assert len(train_catalog) > 0
-    else:
-        if config.spiral_galaxies_only:
-            # these are PREDICTED fractions, hence no _dr12, _gz2, etc
-            # consistent across GZ2/DESI (nice)
-            is_predicted_feat = train_catalog['smooth-or-featured_featured-or-disk_fraction'] > 0.5
-            is_predicted_face = train_catalog['disk-edge-on_yes_fraction'] < 0.5
-            is_predicted_spiral = train_catalog['has-spiral-arms_yes_fraction'] > 0.5
-            # always keep the spiral masked galaxies, regardless
-            train_catalog = train_catalog[(is_predicted_feat & is_predicted_face & is_predicted_spiral) | (train_catalog['spiral_mask_exists'])]
-        else:
-            # always remove the totally smooth galaxies, just for training time
-            is_predicted_not_smooth = train_catalog['smooth-or-featured_featured-or-disk_fraction'] > 0.2
-            train_catalog = train_catalog[is_predicted_not_smooth | train_catalog['spiral_mask_exists']]
+    # if config.gz3d_galaxies_only:
+    #     train_catalog = train_catalog.query('spiral_mask_exists')
+    #     assert len(train_catalog) > 0
+    # else:
+    #     if config.spiral_galaxies_only:
+    #         # these are PREDICTED fractions, hence no _dr12, _gz2, etc
+    #         # consistent across GZ2/DESI (nice)
+    #         is_predicted_feat = train_catalog['smooth-or-featured_featured-or-disk_fraction'] > 0.5
+    #         is_predicted_face = train_catalog['disk-edge-on_yes_fraction'] < 0.5
+    #         is_predicted_spiral = train_catalog['has-spiral-arms_yes_fraction'] > 0.5
+    #         # always keep the spiral masked galaxies, regardless
+    #         train_catalog = train_catalog[(is_predicted_feat & is_predicted_face & is_predicted_spiral) | (train_catalog['spiral_mask_exists'])]
+    #     else:
+    #         # always remove the totally smooth galaxies, just for training time
+    #         is_predicted_not_smooth = train_catalog['smooth-or-featured_featured-or-disk_fraction'] > 0.2
+    #         train_catalog = train_catalog[is_predicted_not_smooth | train_catalog['spiral_mask_exists']]
 
     logging.info('Train galaxies after vote selection: ' + str(len(train_catalog)))
             
-    if config.max_additional_galaxies is not None:
-        # never drop galaxies with spiral masks
-        train_catalog = pd.concat(
-            [
-                train_catalog[train_catalog['spiral_mask_exists']],
-                train_catalog[~train_catalog['spiral_mask_exists']][:config.max_additional_galaxies]
-            ]
-        ).sample(frac=1, random_state=config.random_state).reset_index(drop=True)
-        logging.info(f'Galaxies after cut: {len(train_catalog)}')
+    # if config.max_additional_galaxies is not None:
+    #     # never drop galaxies with spiral masks
+    #     train_catalog = pd.concat(
+    #         [
+    #             train_catalog[train_catalog['spiral_mask_exists']],
+    #             train_catalog[~train_catalog['spiral_mask_exists']][:config.max_additional_galaxies]
+    #         ]
+    #     ).sample(frac=1, random_state=config.random_state).reset_index(drop=True)
+    #     logging.info(f'Galaxies after cut: {len(train_catalog)}')
 
-    logging.info(f'Final train catalog, before oversampling: {len(train_catalog)}')
+    # logging.info(f'Final train catalog, before oversampling: {len(train_catalog)}')
 
     # for train catalog, also hide votes for galaxies with masks
     # keep them for val/test to see if we can predict them
@@ -151,50 +153,57 @@ def train(config : omegaconf.DictConfig) -> None:
     # df[schema.label_cols] = df[schema.label_cols].where(~df['spiral_mask_exists'], 0)
     # logging.info(df[df['spiral_mask_exists']][schema.label_cols[0]])
 
-    log_every_n_steps = min(int(len(train_catalog) / config.batch_size), 100)
+    # log_every_n_steps = min(int(len(train_catalog) / config.batch_size), 100)
+    log_every_n_steps = 100  # stop train logging
     logging.info(f'Logging every {log_every_n_steps} steps')
 
     # oversampling
-    if config.oversampling_ratio > 1:
-        logging.info('Using oversampling')
-        logging.info('Spiral mask fraction before: ' + str(train_catalog['spiral_mask_exists'].mean()))
-        spiral_masked_galaxies = train_catalog[train_catalog['spiral_mask_exists']]
-        train_catalog = pd.concat(
-            [train_catalog] + [spiral_masked_galaxies]*(config.oversampling_ratio-1)
-        )
-        # and shuffle again
-        train_catalog = train_catalog.sample(frac=1, random_state=config.random_state).reset_index(drop=True)
-        logging.info('Spiral mask fraction after: ' + str(train_catalog['spiral_mask_exists'].mean()))
+    # if config.oversampling_ratio > 1:
+    #     logging.info('Using oversampling')
+    #     logging.info('Spiral mask fraction before: ' + str(train_catalog['spiral_mask_exists'].mean()))
+    #     spiral_masked_galaxies = train_catalog[train_catalog['spiral_mask_exists']]
+    #     train_catalog = pd.concat(
+    #         [train_catalog] + [spiral_masked_galaxies]*(config.oversampling_ratio-1)
+    #     )
+    #     # and shuffle again
+    #     train_catalog = train_catalog.sample(frac=1, random_state=config.random_state).reset_index(drop=True)
+    #     logging.info('Spiral mask fraction after: ' + str(train_catalog['spiral_mask_exists'].mean()))
 
-    if config.use_dummy_encoder:
-        logging.warning('Using zoobot encoder')
-        model = gz3d_pytorch_model.ZoobotDummy(
-            input_size=config.image_size,
-            n_classes=2,  # spiral segmap, bar segmap
-            output_dim=len(schema.label_cols),
-            question_index_groups=schema.question_index_groups,
-            use_vote_loss=config.use_vote_loss,
-            use_seg_loss=config.use_seg_loss,
-            seg_loss_weighting=config.seg_loss_weighting
-        )
-    else:
-        model = gz3d_pytorch_model.ZooBot3D(
-            input_size=config.image_size,
-            n_classes=2,  # spiral segmap, bar segmap
-            output_dim=len(schema.label_cols),
-            question_index_groups=schema.question_index_groups,
-            use_vote_loss=config.use_vote_loss,
-            use_seg_loss=config.use_seg_loss,
-            seg_loss_weighting=config.seg_loss_weighting,
-            vote_loss_weighting=config.vote_loss_weighting,
-            seg_loss_metric=config.seg_loss_metric
-        )
+    # if config.use_dummy_encoder:
+    #     logging.warning('Using zoobot encoder')
+    #     model = gz3d_pytorch_model.ZoobotDummy(
+    #         input_size=config.image_size,
+    #         n_classes=2,  # spiral segmap, bar segmap
+    #         output_dim=len(schema.label_cols),
+    #         question_index_groups=schema.question_index_groups,
+    #         use_vote_loss=config.use_vote_loss,
+    #         use_seg_loss=config.use_seg_loss,
+    #         seg_loss_weighting=config.seg_loss_weighting
+    #     )
+    # else:
+    model = gz3d_pytorch_model.ZooBot3D(
+        input_size=config.image_size,
+        # n_classes=2,  # spiral segmap, bar segmap
+        n_classes=config.n_classes, # 2 beta params each
+        # output_dim=len(schema.label_cols),
+        # question_index_groups=schema.question_index_groups,
+        # use_vote_loss=config.use_vote_loss,
+        # use_seg_loss=config.use_seg_loss,
+        seg_loss_weighting=config.seg_loss_weighting,
+        # vote_loss_weighting=config.vote_loss_weighting,
+        seg_loss_metric=config.seg_loss_metric,
+        # skip_connection_weighting=config.skip_connection_weighting,
+        # sweepable hparams
+        dim_mults=[config.dim_mult_0, config.dim_mult_1, config.dim_mult_2, config.dim_mult_3],
+        drop_rates=[config.drop_rate_0, config.drop_rate_1, config.drop_rate_2, config.drop_rate_3],
+        weight_decay=config.weight_decay
+    )
 
     datamodule = pytorch_datamodule.SegmentationDataModule(
         train_catalog=train_catalog,
         val_catalog=val_catalog,
         test_catalog=test_catalog,
-        label_cols=schema.label_cols,
+        # label_cols=schema.label_cols,
         batch_size=config.batch_size,
         num_workers=config.num_workers,
         transform=default_segmentation_transforms(resize_after_crop=config.image_size)
@@ -253,23 +262,23 @@ def get_jpg_loc(row, base_dir):
         return base_dir + row['relative_desi_jpg_loc']
 
 
-def desi_and_gz2_schema():
+# def desi_and_gz2_schema():
 
 
-    question_answer_pairs = {}
-    question_answer_pairs.update(label_metadata.decals_all_campaigns_ortho_pairs)
-    question_answer_pairs.update(label_metadata.gz2_ortho_pairs)
+#     question_answer_pairs = {}
+#     question_answer_pairs.update(label_metadata.decals_all_campaigns_ortho_pairs)
+#     question_answer_pairs.update(label_metadata.gz2_ortho_pairs)
 
-    dependencies = {}
-    dependencies.update(label_metadata.decals_ortho_dependencies)
-    dependencies.update(label_metadata.gz2_ortho_dependencies)
+#     dependencies = {}
+#     dependencies.update(label_metadata.decals_ortho_dependencies)
+#     dependencies.update(label_metadata.gz2_ortho_dependencies)
 
-    # print(question_answer_pairs)
-    # print(dependencies)
+#     # print(question_answer_pairs)
+#     # print(dependencies)
 
-    schema = schemas.Schema(question_answer_pairs, dependencies)
+#     schema = schemas.Schema(question_answer_pairs, dependencies)
 
-    return schema
+#     return schema
 
 
 # lazy copy of the below, but with additional_targets=
@@ -278,7 +287,8 @@ def default_segmentation_transforms(
     crop_scale_bounds=(0.7, 0.8),
     crop_ratio_bounds=(0.9, 1.1),
     resize_after_crop=224, 
-    pytorch_greyscale=False
+    pytorch_greyscale=False,
+    interpolation=1
     ) -> typing.Dict[str, typing.Any]:
 
     transforms_to_apply = [
@@ -293,19 +303,19 @@ def default_segmentation_transforms(
         ]
 
     transforms_to_apply += [
-        A.Rotate(limit=180, interpolation=1,
+        A.Rotate(limit=180, interpolation=interpolation,
                     always_apply=True, border_mode=0, value=0),
         A.RandomResizedCrop(
             height=resize_after_crop,  # after crop resize
             width=resize_after_crop,
             scale=crop_scale_bounds,  # crop factor
             ratio=crop_ratio_bounds,  # crop aspect ratio
-            interpolation=1,
+            interpolation=interpolation,
             always_apply=True
         ),  # new aspect ratio
         A.VerticalFlip(p=0.5),
         # new here, for the byte masks
-        A.ToFloat(max_value=255.),
+        A.ToFloat(max_value=255.),  # TODO remove, need different max value for each
         ToTensorV2()  # channels first, torch convention
     ]
 

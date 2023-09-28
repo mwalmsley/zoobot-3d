@@ -32,9 +32,11 @@ def construct_segmap_image(galaxy, marks_by_users):
         """
         num_users = len(marks_by_users)
         if not num_users == 15:
-            logging.warning(galaxy['segmap_json_loc'])
-        # mask is initially from 0 to AT MOST 15, divide by 15 to get to 0 to 1
-        mask_im = Image.fromarray((255*mask/num_users).astype(np.uint8))
+            logging.warning('Skipping as {} marks: {}'.format(num_users, galaxy['segmap_json_loc']))
+        else:
+            # mask is initially from 0 to AT MOST 15, divide by 15 to get to 0 to 1
+            mask_im = Image.fromarray((15*mask/num_users).astype(np.uint8))  # const norm
+            # mask_im = Image.fromarray((10*mask/num_users).astype(np.uint8))  # const norm
 
     # align to DESI FoV
 
