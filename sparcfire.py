@@ -1,6 +1,6 @@
 # https://github.com/waynebhayes/SpArcFiRe/blob/31220fbad7dede5987acf913820d129f32faea99/run-via-web/README.md
 # https://github.com/waynebhayes/SpArcFiRe/blob/31220fbad7dede5987acf913820d129f32faea99/run-via-web/run-via-web.py
-
+import os
 from requests import Session
 import json
 from pathlib import Path
@@ -143,9 +143,12 @@ def main(srcdir, destdir, output):
   for fp in srcdirp.iterdir():
     if fp.is_file() and fp.suffix == '.jpg':
       print('#{}: {}'.format(i, fp.stem))
-      if outfp is not None:
-        outfp.write(fp.stem)
-      run_pipeline(fp, destdirp, outfp, fp.stem)
+      # print(destdirp / 'galaxy_{}_data.zip'.format(fp.stem))
+      # exit()
+      if not os.path.isfile(destdirp / 'galaxy_{}_data.zip'.format(fp.stem)):
+        if outfp is not None:
+          outfp.write(fp.stem)
+        run_pipeline(fp, destdirp, outfp, fp.stem)
       i += 1
 
   if output is not None:
@@ -162,4 +165,4 @@ if __name__ == '__main__':
 
   main(args.srcdir, args.destdir, args.output)
 
-#   python sparcfire.py '/Users/user/repos/zoobot-3d/data/sparcfire/fits' '/Users/user/repos/zoobot-3d/data/sparcfire/results' -o '/Users/user/repos/zoobot-3d/data/sparcfire/results/queryID.txt'
+#   python sparcfire.py '/Users/user/repos/zoobot-3d/data/sparcfire/test_images' '/Users/user/repos/zoobot-3d/data/sparcfire/results/test_images' -o '/Users/user/repos/zoobot-3d/data/sparcfire/results/test_images/queryID.txt'

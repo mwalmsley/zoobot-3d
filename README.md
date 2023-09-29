@@ -79,3 +79,6 @@ For much later, we have downloaded the SAMI candidate target list.
 
     <!-- current best sweep model -->
     rsync -avz -e 'ssh -A -J walml@external.jb.man.ac.uk' walml@galahad.ast.man.ac.uk:/share/nas2/walml/galaxy_zoo/segmentation/outputs/run_1695899881.3925836 outputs
+
+    <!-- same, but slightly zoomed images -->
+    rsync -avz -e 'ssh -A -J walml@external.jb.man.ac.uk' walml@galahad.ast.man.ac.uk:/share/nas2/walml/galaxy_zoo/segmentation/outputs/run_1695938854.2480044  outputs

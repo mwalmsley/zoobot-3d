@@ -29,13 +29,23 @@ def predict(config : omegaconf.DictConfig) -> None:
     logging.info(df['spiral_mask_loc'].iloc[0])
     df['spiral_mask_exists'] = df['spiral_mask_loc'].apply(os.path.isfile)
     assert any(df['spiral_mask_exists'])
-    df = df.query('spiral_mask_exists')[:8].reset_index(drop=True)
+    df = df.query('spiral_mask_exists').reset_index(drop=True)
     df['spiral_mask_loc'] = ''
+
+    is_predicted_feat = df['smooth-or-featured_featured-or-disk_fraction'] > 0.5
+    is_predicted_face = df['disk-edge-on_yes_fraction'] < 0.5
+    is_predicted_spiral = df['has-spiral-arms_yes_fraction'] > 0.33
+    df = df[is_predicted_feat & is_predicted_face & is_predicted_spiral].reset_index(drop=True)
+
+    df = df[:512]
 
     # model = pl.load_from_checkpoint(config.checkpoint_path)
     # model.freeze()
 
-    checkpoint_path = base_dir + 'outputs/run_1695899881.3925836/epoch=93-step=1880.ckpt'
+    # best sweep
+    # checkpoint_path = base_dir + 'outputs/run_1695899881.3925836/epoch=93-step=1880.ckpt'
+    # as above, slightly zoomed
+    checkpoint_path = base_dir + 'outputs/run_1695938854.2480044/epoch=91-step=1840.ckpt'
 
     model = gz3d_pytorch_model.ZooBot3D.load_from_checkpoint(checkpoint_path, map_location='cpu')
     model.eval()
