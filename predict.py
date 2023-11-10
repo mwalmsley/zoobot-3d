@@ -11,8 +11,8 @@ from PIL import Image
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 
-import pytorch_datamodule
-import gz3d_pytorch_model
+import zoobot_3d.pytorch_datamodule
+import zoobot_3d.gz3d_pytorch_model
 
 import train
 
@@ -27,8 +27,13 @@ def predict(config : omegaconf.DictConfig) -> None:
     else:
         base_dir = '/share/nas2/walml/galaxy_zoo/segmentation/'
 
+    """
+    1. Predict on test catalog, for Neurips paper
+    """
     # df = pd.read_parquet(base_dir + 'data/test_catalog.parquet')
-    # OR
+    """
+    2. Predict on all GZ3D galaxies
+    """
     df = pd.read_parquet(base_dir + 'data/gz3d_and_desi_master_catalog.parquet')  # now includes GZ2 also
     df['spiral_mask_loc'] = df['relative_spiral_mask_loc'].astype(str).apply(lambda x: base_dir + x)
     # print(df['spiral_mask_loc'].iloc[0])
@@ -40,28 +45,27 @@ def predict(config : omegaconf.DictConfig) -> None:
     # df = df.query('spiral_mask_exists').reset_index(drop=True)
     df['desi_jpg_loc'] = df.apply(lambda x: train.get_jpg_loc(x, base_dir), axis=1)
     logging.info(df['spiral_mask_loc'].iloc[0])
-
-    logging.info('Check paths')
-    # TODO could precalculate
-    df['spiral_mask_exists'] = df['spiral_mask_loc'].apply(os.path.isfile)
-    assert any(df['spiral_mask_exists'])
-
-    is_predicted_feat = df['smooth-or-featured_featured-or-disk_fraction'] > 0.5
-    is_predicted_face = df['disk-edge-on_yes_fraction'] < 0.5
-    is_predicted_spiral = df['has-spiral-arms_yes_fraction'] > 0.33
-    df = df[is_predicted_feat & is_predicted_face & is_predicted_spiral].reset_index(drop=True)
-
-    # df = df[:512]
-
+    """
+    2b. Optionally filter to featured/face-on/spiral
+    """
+    # is_predicted_feat = df['smooth-or-featured_featured-or-disk_fraction'] > 0.5
+    # is_predicted_face = df['disk-edge-on_yes_fraction'] < 0.5
+    # is_predicted_spiral = df['has-spiral-arms_yes_fraction'] > 0.33
+    # df = df[is_predicted_feat & is_predicted_face & is_predicted_spiral].reset_index(drop=True)
+    """
+    3. Predict on a single interesting galaxy
+    """
     # df = pd.DataFrame(data=[{
     #     'dr8_id': '13',
     #     'spiral_mask_loc': '',
     #     'bar_mask_loc': '',
     #     'desi_jpg_loc': '/home/walml/Downloads/NGC628_SITELLE_ALL_asinh4.jpg'
     # }])
+    # (for this specific image, disable the center crop augmentation, it's already tightly cropped)
 
-    # model = pl.load_from_checkpoint(config.checkpoint_path)
-    # model.freeze()
+    print(len(df))
+    exit()
+
 
     # best sweep
     # checkpoint_path = base_dir + 'outputs/run_1695899881.3925836/epoch=93-step=1880.ckpt'
@@ -123,7 +127,7 @@ def predict_transform(resize_after_crop=224):
     # so crop to original size * 0.75
     # NOW 0.6-0.7, original*0.65
     transforms_to_apply = [
-        # A.CenterCrop(height=int(424*0.65), width=int(424*0.65)),
+        A.CenterCrop(height=int(424*0.65), width=int(424*0.65)),
         # then resize as normal
         A.Resize(height=resize_after_crop, width=resize_after_crop, interpolation=1),
         A.ToFloat(max_value=255.),  # TODO remove, need different max value for each

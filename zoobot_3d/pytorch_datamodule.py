@@ -3,7 +3,7 @@ import pytorch_lightning as pl
 from torch.utils.data import DataLoader
 import pandas as pd
 
-import pytorch_dataset
+from zoobot_3d import pytorch_dataset
 
 class SegmentationDataModule(pl.LightningDataModule):
     def __init__(
