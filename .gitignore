@@ -180,3 +180,4 @@ results/models
 data/sparcfire/results
 lightning_logs
 outputs
+*.pdf

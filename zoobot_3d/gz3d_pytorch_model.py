@@ -13,10 +13,10 @@ from torchmetrics import Metric
 
 # re-using from Zoobot
 from zoobot.pytorch.estimators import define_model, efficientnet_custom
-from zoobot.pytorch.estimators.custom_layers import PermaDropout
+# from zoobot.pytorch.estimators.custom_layers import PermaDropout
 
 # new custom layers
-from custom_layers import DownSample, UpSample, ConvBlock, ResNet
+from zoobot_3d.custom_layers import DownSample, UpSample, ConvBlock, ResNet
 
 
 class ZooBot3D(define_model.GenericLightningModule): 
