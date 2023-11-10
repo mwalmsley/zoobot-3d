@@ -11,8 +11,8 @@ from PIL import Image
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 
-import zoobot_3d.pytorch_datamodule
-import zoobot_3d.gz3d_pytorch_model
+from zoobot_3d import pytorch_datamodule
+from zoobot_3d import gz3d_pytorch_model
 
 import train
 
@@ -53,6 +53,10 @@ def predict(config : omegaconf.DictConfig) -> None:
     # is_predicted_spiral = df['has-spiral-arms_yes_fraction'] > 0.33
     # df = df[is_predicted_feat & is_predicted_face & is_predicted_spiral].reset_index(drop=True)
     """
+    2c. Optionally filter to GZ3D/MANGA subset
+    """
+    df = df[~df['ra_manga'].isna()][15000:]    
+    """
     3. Predict on a single interesting galaxy
     """
     # df = pd.DataFrame(data=[{
@@ -63,8 +67,8 @@ def predict(config : omegaconf.DictConfig) -> None:
     # }])
     # (for this specific image, disable the center crop augmentation, it's already tightly cropped)
 
-    print(len(df))
-    exit()
+    # print(len(df))
+    # exit()
 
     # df = df[512:]
 
@@ -108,7 +112,7 @@ def predict(config : omegaconf.DictConfig) -> None:
     print(preds[0].shape)
     preds = torch.concat(preds, dim=0)  # stick batches back together
     print(preds.shape)
-    save_dir = os.path.dirname(checkpoint_path) + '/predictions_all/'
+    save_dir = os.path.dirname(checkpoint_path) + '/predictions_manga_all/'
     if not os.path.isdir(save_dir):
         os.mkdir(save_dir)
 

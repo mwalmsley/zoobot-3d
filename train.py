@@ -23,7 +23,7 @@ from albumentations.pytorch import ToTensorV2
 # from galaxy_datasets.shared import label_metadata
 
 from galaxy_datasets import transforms
-import gz3d_pytorch_model, pytorch_datamodule
+from zoobot_3d import gz3d_pytorch_model, pytorch_datamodule
 
 
 
@@ -34,9 +34,9 @@ def train(config : omegaconf.DictConfig) -> None:
 
     # save_dir = HydraConfig.get().run.dir
  
-    on_local = os.path.isdir('/Users/user/')
+    on_local = os.path.isdir('/home/walml/repos/zoobot-3d/')
     if on_local:
-        base_dir = '/Users/user/repos/zoobot-3d/'
+        base_dir = '/home/walml/repos/zoobot-3d/'
     else:
         base_dir = '/share/nas2/walml/galaxy_zoo/segmentation/'
 
@@ -73,6 +73,8 @@ def train(config : omegaconf.DictConfig) -> None:
     )
     wandb_logger = WandbLogger(project='zoobot-3d', log_model=False, config=wandb.config)
     config = wandb.config
+    # and back to omegaconf
+    config = omegaconf.OmegaConf.create(config)
 
     save_dir = base_dir + 'outputs/run_' + str(time.time())
     logging.info(save_dir)
