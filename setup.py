@@ -19,6 +19,11 @@ setup(
         # 'torch >= 2.',  # probably you want to install this already yourself, with CUDA etc
         'torchvision',
         'pytorch-lightning >= 2',
+        # these for the bar length test only
+        'seaborn',
+        'scipy',
+        'imutils',
+        'statsmodels'
         # probably more
     ]
 )

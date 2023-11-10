@@ -1,6 +1,7 @@
 import os
 import logging
 
+import numpy as np
 # import h5py
 import torch
 import pytorch_lightning as pl
@@ -34,17 +35,17 @@ def predict(config : omegaconf.DictConfig) -> None:
     """
     2. Predict on all GZ3D galaxies
     """
-    df = pd.read_parquet(base_dir + 'data/gz3d_and_desi_master_catalog.parquet')  # now includes GZ2 also
-    df['spiral_mask_loc'] = df['relative_spiral_mask_loc'].astype(str).apply(lambda x: base_dir + x)
-    # print(df['spiral_mask_loc'].iloc[0])
-    # exit()
-    df['bar_mask_loc'] = df['relative_bar_mask_loc'].astype(str).apply(lambda x: base_dir + x)
-    logging.info(df['spiral_mask_loc'].iloc[0])
-    df['spiral_mask_exists'] = df['spiral_mask_loc'].apply(os.path.isfile)
-    assert any(df['spiral_mask_exists'])
-    # df = df.query('spiral_mask_exists').reset_index(drop=True)
-    df['desi_jpg_loc'] = df.apply(lambda x: train.get_jpg_loc(x, base_dir), axis=1)
-    logging.info(df['spiral_mask_loc'].iloc[0])
+    # df = pd.read_parquet(base_dir + 'data/gz3d_and_desi_master_catalog.parquet')  # now includes GZ2 also
+    # df['spiral_mask_loc'] = df['relative_spiral_mask_loc'].astype(str).apply(lambda x: base_dir + x)
+    # # print(df['spiral_mask_loc'].iloc[0])
+    # # exit()
+    # df['bar_mask_loc'] = df['relative_bar_mask_loc'].astype(str).apply(lambda x: base_dir + x)
+    # logging.info(df['spiral_mask_loc'].iloc[0])
+    # df['spiral_mask_exists'] = df['spiral_mask_loc'].apply(os.path.isfile)
+    # assert any(df['spiral_mask_exists'])
+    # # df = df.query('spiral_mask_exists').reset_index(drop=True)
+    # df['desi_jpg_loc'] = df.apply(lambda x: train.get_jpg_loc(x, base_dir), axis=1)
+    # logging.info(df['spiral_mask_loc'].iloc[0])
     """
     2b. Optionally filter to featured/face-on/spiral
     """
@@ -53,9 +54,17 @@ def predict(config : omegaconf.DictConfig) -> None:
     # is_predicted_spiral = df['has-spiral-arms_yes_fraction'] > 0.33
     # df = df[is_predicted_feat & is_predicted_face & is_predicted_spiral].reset_index(drop=True)
     """
-    2c. Optionally filter to GZ3D/MANGA subset
+    2c. Optionally filter to GZ3D/MANGA or SAMI subset
     """
-    df = df[~df['ra_manga'].isna()][15000:]    
+    # df = df[~df['ra_manga'].isna()]
+    #   OR
+    df = pd.read_csv(base_dir + 'data/sami_and_gz_desi_matches.csv')
+    df['desi_jpg_loc'] = df.apply(lambda x: base_dir + f'data/sami/jpg/{x["brickid"]}/{x["brickid"]}_{x["objid"]}.jpg', axis=1)
+    # exit()
+    print(df['desi_jpg_loc'].iloc[0])
+    # /home/walml/repos/zoobot-3d/data/sami/jpg/335556
+    print(np.mean([os.path.isfile(x) for x in df['desi_jpg_loc'].values]))
+    # exit()
     """
     3. Predict on a single interesting galaxy
     """
