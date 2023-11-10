@@ -1,10 +1,8 @@
 import typing
 import os
 import logging
-# import argparse
 import time
 
-import cv2
 import omegaconf
 import hydra
 # https://hydra.cc/docs/configure_hydra/intro/#accessing-the-hydra-config
@@ -42,9 +40,6 @@ def train(config : omegaconf.DictConfig) -> None:
     else:
         base_dir = '/share/nas2/walml/galaxy_zoo/segmentation/'
 
-    save_dir = base_dir + 'outputs/run_' + str(time.time())
-    logging.info(save_dir)
-
     debug = config.debug
     if debug or on_local:
         # config.max_additional_galaxies = 500
@@ -79,6 +74,9 @@ def train(config : omegaconf.DictConfig) -> None:
     wandb_logger = WandbLogger(project='zoobot-3d', log_model=False, config=wandb.config)
     config = wandb.config
 
+    save_dir = base_dir + 'outputs/run_' + str(time.time())
+    logging.info(save_dir)
+
     df = pd.read_parquet(base_dir + 'data/gz3d_and_desi_master_catalog.parquet')  # now includes GZ2 also
 
     logging.info(df['relative_spiral_mask_loc'].iloc[0])
@@ -106,6 +104,10 @@ def train(config : omegaconf.DictConfig) -> None:
     df = df.query('spiral_mask_exists')  # new, simpler version
     train_catalog, hidden_catalog = train_test_split(df, test_size=0.3, random_state=config.random_state)
     val_catalog, test_catalog = train_test_split(hidden_catalog, test_size=0.2/0.3, random_state=config.random_state)
+
+    # print(len(test_catalog))
+    # test_catalog.to_parquet(base_dir + 'data/test_catalog.parquet', index=False)
+    # exit()
 
     # new
     # we will ALWAYS evaluate (val/test) ONLY on ALL GZ3D galaxies with spiral masks
@@ -284,9 +286,9 @@ def get_jpg_loc(row, base_dir):
 # lazy copy of the below, but with additional_targets=
 # https://github.com/mwalmsley/galaxy-datasets/blob/main/galaxy_datasets/transforms.py#L6
 def default_segmentation_transforms(
-    crop_scale_bounds=(0.7, 0.8),
+    crop_scale_bounds=(0.6, 0.7),  # changed from (0.7, 0.8). Going a little closer.
     crop_ratio_bounds=(0.9, 1.1),
-    resize_after_crop=224, 
+    resize_after_crop=224, # slight downscale vs 256 for sparcfinder
     pytorch_greyscale=False,
     interpolation=1
     ) -> typing.Dict[str, typing.Any]:

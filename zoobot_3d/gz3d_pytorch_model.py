@@ -9,7 +9,7 @@ import wandb
 import torchvision
 import pytorch_lightning as pl
 from pyro.distributions import BetaBinomial
-# from torchmetrics import Accuracy
+from torchmetrics import Metric
 
 # re-using from Zoobot
 from zoobot.pytorch.estimators import define_model, efficientnet_custom
@@ -41,6 +41,7 @@ class ZooBot3D(define_model.GenericLightningModule):
                 #  vote_loss_weighting=1.,
                  seg_loss_metric='mse',
                 #  skip_connection_weighting=1.,
+                iou_thresholds=[0., 3*15/255.]
                  ):
         super().__init__()
         self.n_classes = n_classes
@@ -55,6 +56,14 @@ class ZooBot3D(define_model.GenericLightningModule):
         # self.vote_loss_weighting = vote_loss_weighting
         self.seg_loss_metric=seg_loss_metric
 
+        self.iou_thresholds = iou_thresholds
+        self.iou_metric_lookup = nn.ModuleDict()
+        for class_name in ['spiral', 'bar']:
+            for prefix in ['train', 'validation', 'test']:
+                self.iou_metric_lookup[class_name + '_' + prefix] = nn.ModuleList(
+                    [PixelwiseIOU(threshold) for threshold in self.iou_thresholds]
+                )
+
         # self.skip_connection_weighting = skip_connection_weighting
 
         dims = [self.channels, *map(lambda m: n_filters * m, dim_mults)]
@@ -64,7 +73,6 @@ class ZooBot3D(define_model.GenericLightningModule):
         # build encoder model
         self.encoder = pytorch_encoder_module(self.in_out,
                                               self.drop_rates)
-
                                             #   self.skip_connection_weighting
                                             
 
@@ -98,7 +106,7 @@ class ZooBot3D(define_model.GenericLightningModule):
                                               final_activation=self.final_activation
                                             )
                      
-    def forward(self, x):
+    def forward(self, x):  # x should be batch['image']
 
         x, h = self.encoder(x)
 
@@ -108,6 +116,9 @@ class ZooBot3D(define_model.GenericLightningModule):
 
         # return z, y
         return y
+    
+    def predict_step(self, batch, *args):
+        return self(batch['image'])
     
     def configure_optimizers(self):
         return torch.optim.AdamW(
@@ -180,6 +191,8 @@ class ZooBot3D(define_model.GenericLightningModule):
             # optional extra logging (okay the first one is v. handy for early stopping, not optional really)
             self.log(f'{step_name}/epoch_seg_loss:0', seg_loss_reduced, on_epoch=True, on_step=False, sync_dist=True)
             self.log_loss_per_seg_map_name(seg_loss, prefix=step_name)
+
+            self.calculate_iou_per_seg_map_name(seg_maps, pred_maps, prefix=step_name)
         else:
             # logging.warning('No seg maps in batch, skipping seg loss')
             seg_loss_reduced = 0
@@ -199,9 +212,50 @@ class ZooBot3D(define_model.GenericLightningModule):
         # log seg maps individually
         for seg_map_class_index in range(seg_loss.shape[1]):  # first dim is the seg map index
             # mean over the batch and all pixels, for the current seg map index
-            self.log(f'{prefix}/epoch_seg_maps/seg_map_{seg_map_class_index}_loss', torch.nanmean(seg_loss[:, seg_map_class_index, :, :]), on_epoch=True, on_step=False, sync_dist=True)
+            self.log(
+                f'{prefix}/epoch_seg_maps/seg_map_{seg_map_class_index}_loss',
+                torch.nanmean(seg_loss[:, seg_map_class_index, :, :]),
+                on_epoch=True, on_step=False, sync_dist=True
+            )
+                
+    def calculate_iou_per_seg_map_name(self, seg_maps, pred_maps, prefix):
+        for index, name in enumerate(['spiral' , 'bar']):  # first dim is the seg map index
+            has_maps_for_this_class = torch.amax(seg_maps[:, index], dim=(1, 2)) > 0
+            iou_metrics = self.iou_metric_lookup[name + '_' + prefix]
+            for iou_metric in iou_metrics:
+                # update metric state
+                iou_metric.update(
+                    pred_maps[has_maps_for_this_class, index],
+                    seg_maps[has_maps_for_this_class, index]
+                )
+
+    def on_train_batch_end(self, *args):
+        pass
+
+    def on_validation_batch_end(self, outputs, *args):
+        self.log_outputs(outputs, 'train')
+
+    def on_train_epoch_end(self):
+        self.log_seg_map_iou_metrics('train')
+
+    def on_validation_batch_end(self, outputs, *args):
+        self.log_outputs(outputs, 'validation')
+
+    def on_validation_epoch_end(self):
+        self.log_seg_map_iou_metrics('validation')
+
+    def log_seg_map_iou_metrics(self, prefix):
+        for name in ['spiral' , 'bar']: 
+            iou_metrics = self.iou_metric_lookup[name + '_' + prefix]
+            for iou_metric in iou_metrics:
+                self.log(
+                    f'{prefix}/epoch_seg_maps/seg_map_{name}_iou_threshold_{iou_metric.threshold}',
+                    iou_metric.compute(),
+                    on_epoch=True, on_step=False, sync_dist=True
+                )
 
     def log_outputs(self, outputs, step_name):
+        # called on every *_batch_end
 
         step = self.global_step
         if step % 100 == 0:  # for speed
@@ -465,6 +519,31 @@ def beta_binomial_loss_func(segmaps, pred_maps, reduction, epsilon=1e-5):
     # return spiral_loss + bar_loss
     
 
+# can't use premade IOU as expects bounding boxes
+class PixelwiseIOU(Metric):
+    # https://torchmetrics.readthedocs.io/en/stable/pages/implement.html
+    def __init__(self, threshold):
+        super().__init__()
+        is_differentiable: True
+        higher_is_better: True
+        full_state_update: False
+
+        self.threshold = threshold
+        self.add_state("intersection", default=torch.tensor(0), dist_reduce_fx="sum")
+        self.add_state("union", default=torch.tensor(0), dist_reduce_fx="sum")
+
+    def update(self, preds: torch.Tensor, target: torch.Tensor):
+        # preds, target = self._input_format(preds, target)
+        assert preds.shape == target.shape, (target.shape, preds.shape)
+
+        binary_preds = preds > self.threshold
+        binary_target = target > self.threshold
+
+        self.intersection += torch.sum(binary_preds & binary_target)
+        self.union += torch.sum(binary_preds | binary_target)
+
+    def compute(self):
+        return self.intersection.float() / self.union.float()
 
 if __name__ == '__main__':
 

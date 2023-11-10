@@ -19,18 +19,27 @@ use_dummy_encoder: False
 # sweep config with always-4
 
 # dim_mults: [1, 2, 4, 8]
+# dim_mult_0: 1
+# dim_mult_1: 2
+# dim_mult_2: 4
+# dim_mult_3: 8
 dim_mult_0: 1
-dim_mult_1: 2
-dim_mult_2: 4
-dim_mult_3: 8
+dim_mult_1: 4
+dim_mult_2: 2
+dim_mult_3: 4
 
-drop_rate_0: 0
-drop_rate_1: 0
-drop_rate_2: 0.3
-drop_rate_3: 0.3
 # drop_rates: [0, 0, 0.3, 0.3]
+# drop_rate_0: 0
+# drop_rate_1: 0
+# drop_rate_2: 0.3
+# drop_rate_3: 0.3
+drop_rate_0: 0
+drop_rate_1: 0.1
+drop_rate_2: 0.25
+drop_rate_3: 0.13
 
-weight_decay: 0.05
+# weight_decay: 0.05
+weight_decay: 0.075
 
 # gz3d_galaxies_only: False
 # spiral_galaxies_only: True

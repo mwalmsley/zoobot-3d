@@ -24,7 +24,7 @@ if __name__ == '__main__':
         base_image_dir = '/Volumes/beta/galaxy_zoo/segmentation/data/desi'
         sys.path.append('/Users/user/repos/download_DECaLS_images')
 
-    import downloader
+    import downloader  # part of the private download_DECaLS_images repo above
     
 
     df = pd.read_csv(

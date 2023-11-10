@@ -1,6 +1,6 @@
 import logging
 
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.path import Path
 from shapely.geometry import LineString

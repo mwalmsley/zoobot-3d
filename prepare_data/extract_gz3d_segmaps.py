@@ -7,7 +7,7 @@ import pandas as pd
 from astropy.io import fits
 from PIL import Image
 
-from segmap_utils import construct_segmap_image
+from zoobot_3d.segmap_utils import construct_segmap_image
 
 
 def save_segmaps(df: pd.DataFrame, overwrite=False):
