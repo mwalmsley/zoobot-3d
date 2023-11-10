@@ -66,11 +66,15 @@ def predict(config : omegaconf.DictConfig) -> None:
     print(len(df))
     exit()
 
+    # df = df[512:]
 
-    # best sweep
-    # checkpoint_path = base_dir + 'outputs/run_1695899881.3925836/epoch=93-step=1880.ckpt'
-    # as above, slightly zoomed
-    checkpoint_path = base_dir + 'outputs/run_1695938854.2480044/epoch=91-step=1840.ckpt'
+    # model = pl.load_from_checkpoint(config.checkpoint_path)
+    # model.freeze()
+
+    # best sweep, use 0.75 crop
+    checkpoint_path = base_dir + 'outputs/run_1695899881.3925836/epoch=93-step=1880.ckpt'
+    # as above, slightly zoomed, use 0.65 crop
+    # checkpoint_path = base_dir + 'outputs/run_1695938854.2480044/epoch=91-step=1840.ckpt'
 
     model = gz3d_pytorch_model.ZooBot3D.load_from_checkpoint(checkpoint_path)
                                                             #  , map_location='cpu')
@@ -127,7 +131,7 @@ def predict_transform(resize_after_crop=224):
     # so crop to original size * 0.75
     # NOW 0.6-0.7, original*0.65
     transforms_to_apply = [
-        A.CenterCrop(height=int(424*0.65), width=int(424*0.65)),
+        A.CenterCrop(height=int(424*0.75), width=int(424*0.75)),
         # then resize as normal
         A.Resize(height=resize_after_crop, width=resize_after_crop, interpolation=1),
         A.ToFloat(max_value=255.),  # TODO remove, need different max value for each
