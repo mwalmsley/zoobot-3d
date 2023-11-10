@@ -15,46 +15,16 @@ The general plan is:
 * Measure performance vs segmentation-only baseline
 * Make predictions on DESI-LS images of SAMI galaxies (90% are within DESI-LS)
 
-## Data Prep.
+## Input Data
+
+### MANGA Notes
 
 GZ3D is available from Marvin, which is a PITA to install, so instead we scrape the server for the GZ3D FITS. `download_gz3d_fits.py`.
 Each FITS includes: segmentation maps for spirals and bars, raw vector paths from volunteers for spirals and bars, and MANGA metadata.
 
-We construct a catalog of GZ3D galaxies using the MANGA metadata in the GZ3D fits: `construct_gz3d_catalog.py`.
+### SAMI Notes
 
-We cross-match that catalog (plus the SAMI catalog, see below) with the GZ DESI base catalog: `desi_manga_crossmatch.ipynb`.
-
-<!-- , and grab them from Manchester with rsync: `grab_desi_fits.ipynb`.  -->
-We download NEW DESI FITS files, centered precisely on the manga segmaps (but otherwise identical to the GZ DESI images).
-We add the GZ DESI FITS file locs to the catalog
-<!-- The catalog is now ready: `data/gz3d_and_gz_desi_master_catalog.csv` -->
-
-For each GZ3D FITS, we separately save the raw bar/spiral volunteer path annotations as JSON for fast loading. We don't need the rest of the GZ3D data. `extract_gz3d_segmaps.py`
-
-For training, we will use only galaxies which have spiral and/or bar segmaps.
-
-## Data Loaders
-
-For each galaxy, we dynamically construct GZ3D segmaps from the raw volunteer classifications. 
-We can choose which volunteer classifications to use - I suspect all, without the GZ3D default cleaning.
-
-Construct the segmaps and align them to the DESI images, then optionally apply augmentations: `pytorch_dataset.py`
-
-Wrap them together in a LightningDataModule: `pytorch_datamodule.py`
-
-TODO Set up model. The model should a dict from the dataloaders, like
-
-    {
-        'image': (augmented DESI RGB image, 0-1 floats),
-        'spiral_mask': (augmented mask from GZ3D),
-        'bar_mask': (similarly),
-        'label_cols': classification votes from DESI as with Zoobot e.g. [[1, 4, 2, ...], ...]
-    }
-
----
-
-
-For much later, we have downloaded the SAMI candidate target list.
+Downloaded the SAMI candidate target list.
 
 * Fixed pixel scale.
 * [Latest data release paper](https://academic.oup.com/mnras/article/505/1/991/6123881) (main difference is +800 cluster galaxies)
@@ -63,6 +33,90 @@ For much later, we have downloaded the SAMI candidate target list.
 * [Explaining the IFU data products](https://docs.datacentral.org.au/sami/data-release-3/core-data-products/)
 * [Index of access services](https://datacentral.org.au/services/)
 * Target selection is from GAMA. Here’s the [docs](https://docs.datacentral.org.au/sami/data-release-3/input-and-photometric-catalogues/).
+
+### Other Data
+
+We also use the GZ DESI volunteer votes and ML predictions.
+
+## Prepare Data
+
+### Turn the Volunteer Annotations into Images
+
+Extract the individual volunteer marks (vector vertices) and save them as JSON text to `segmap_json_loc`. We no longer need the GZ3D FITS themselves.
+
+Load these JSON to construct jpg "images" where the pixel value is proportional to the fraction of volunteers enclosing that pixel. `extract_gz3d_segmaps.py`, with image construction imported from `zoobot_3d.segmap_utils.construct_segmap_image`. Images saved to `spiral_mask_loc` and `bar_mask_loc`. Skips if no marks.
+
+### Cross-match to DESI and Download New DESI Images
+
+Construct a catalog of GZ3D galaxies using the MANGA metadata in the GZ3D fits: `construct_gz3d_catalog.py`, creating `reconstructed_gz3d_catalog_new.csv` (which is really just a list of the GZ3D segmap files)
+
+Cross-match the core GZ DESI catalog (`data/desi/master_all_file_index_passes_file_checks.parquet`) with the three catalogs we're interested in here: GZ3D/MANGA, SAMI, and GZ2. `crossmatch_catalogs.ipynb`.
+
+I already have images for all these galaxies, but, they are all centered on the DESI catalog source coordinates rather than the MANGA catalog source coordinates. It's easier to redownload than to mess around with WCS.
+<!-- , and grab them from Manchester with rsync: `grab_desi_fits.ipynb`.  -->
+`download_centered_desi_cutouts` downloads *new* DESI FITS and jpg images, centered precisely on the manga segmaps (but otherwise identical to the GZ DESI images).
+
+`final_catalog_tweaks.ipynb` tinkers with paths and merges in the GZ DESI and GZ2 vote tables.
+There's now quite a lot of columns, so to summarise, `data/gz3d_and_desi_master_catalog.parquet` has:
+
+* GZ3D FITS metadata (RA, Dec, gz_spiral_votes, etc). Not used.
+* DESI master catalog columns inc. dr8_id, est_dr5_pixscale. Crucial!
+* Paths to the images/segmaps. `relative_desi_jpg_loc`, `relative_segmap_json_loc`, `relative_spiral_mask_loc`, `relative_bar_mask_loc`
+* GZ DESI ML predicted vote fractions for *these four columns only*, for filtering:  `smooth-or-featured_featured-or-disk_fraction`, `disk-edge-on_yes_fraction`, `has-spiral-arms_yes_fraction`, `spiral-arm-count_2_fraction`
+* GZ DESI volunteer votes e.g. `smooth-or-featured-dr8_smooth_fraction`
+* GZ2 volunteer votes e.g. `smooth-or-featured-gz2_smooth_fraction`
+
+## Deep Learning
+
+
+
+### Data Loading
+
+I tried constructing the label segmaps 'on the fly', but it's much too slow for practical training.
+
+`zoobot_3d.pytorch_dataset.py` has a Dataset class which, given a dataframe of galaxies:
+
+* loads the centered image (from `desi_jpg_loc`)
+* optionally, loads the GZ3D spiral/bar masks (`spiral_mask_loc`, `bar_mask_loc`)
+* optionally, loads the vote labels
+* optionally, applies an albumentations transform to the image and masks (consistently)
+
+The Dataset yields dicts like
+
+    {
+        'image': (augmented DESI RGB image, 0-1 floats),
+        'spiral_mask': (augmented mask from GZ3D, 0-255 uint where value is prop. to volunteers enclosing that pixel),
+        'bar_mask': (similarly),
+        'label_cols': classification votes as usual with Zoobot e.g. [[1, 4, 2, ...], ...]. No longer used.
+    }
+
+`zoobot_3d.pytorch_datamodule.py` has LightningDataModule class which creates train, val and test Datasets from `zoobot_3d.pytorch_dataset.py`.
+
+For training, we currently use only galaxies which have spiral and/or bar segmaps.
+
+### Model
+
+It's a UNet adapted from Mike Smith's diffusion paper.
+
+I did an hparam sweep of the key bits; see slurm/sweep.yaml.
+
+The head predicts the fraction of volunteers enclosing each pixel. The loss function is calculated on this vs the actual fraction (as encoded on the segmap jpgs). The loss func. can be L1, MSE, or Beta-Binomial; we found L1 worked best visually ('softer' than MSE, and BB didn't train well).
+
+### Training
+
+Nothing unusual, see `train.py`. Importantly, we only train on galaxies with spiral volunteer segmaps.
+
+(this was more complicated when training on segmaps+votes, but we removed that)
+
+---
+
+## Results for Paper
+
+`predict.py` loops over a catalog of galaxies. Used for all MANGA galaxies and, soon, all SAMI galaxies. 
+
+`create_comparison_grids.py` makes paper-ready figures for comparing GZ3D, sparcfire, and our model.
+
+
 
 ## Useful commands
 
