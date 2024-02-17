@@ -1,0 +1,31 @@
+{
+    "model_name": "Zoobot-backbone-transfer",
+    "model_type": "Zoobot",
+    "trainable_layers": 0,
+    "description": "3-channel ResNet50 initialised with weights from Zoobot, transfer learning mode",
+    "log_dir": "./models/Zoobot-backbone-transfer/",
+    "pretrained_ckpt": "./pretrained_models/v2.0/gz-evo_300px_resnet50_rep1_div1_seed20622/checkpoints/epoch=23-step=92160.ckpt",
+    "data_table": "./data/mask_labels.gzip",
+    "image_dir": "./data/",
+    "batch_size": 16,
+    "num_classes": 3,
+    "epochs": 150,
+    "channels": 3,
+    "bands": null,
+    "image_mean":
+    [
+        0.485,
+        0.456,
+        0.406
+    ],
+    "image_std":
+    [
+        0.229,
+        0.224,
+        0.225
+    ],
+    "k_folds": 0,
+    "validation_split": 0.2,
+    "test_split": 0.0,
+    "final_model_ckpt": "MaskRCNN_Zoobot_epoch_104.pth"
+}
