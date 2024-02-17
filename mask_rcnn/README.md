@@ -1,7 +1,7 @@
 # Mask R-CNN for bars and spiral arms
 Mask R-CNN using Zoobot as feature extraction backbone.
 * Folder `data` should contain two subfolders: `pngs` for the galaxy images (`{object_id}.png`) and `masks` for the pixel masks (`{object_id}_mask.png`) and a dataframe with object-ids, labels and bounding box coordinates for training.
-* Folder 'models` is the output folder for the logs and the model checkpoints.
+* Folder `models` is the output folder for the logs and the model checkpoints.
 Most things are setup via this config-file `Zoobot-backbone-transfer_config.json`:
 ```javascript
 {
