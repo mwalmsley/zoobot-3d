@@ -9,7 +9,7 @@ Most things are setup via this config-file `Zoobot-backbone-transfer_config.json
     "model_name": "Zoobot-backbone-transfer",
     "model_type": "Zoobot",
     // defines which ResNet-blocks of the backbone will be unfreezed for training
-    // 0 - none, 1 - layer 1, ..., 5 - all blocks
+    // 0 - none, 1 - top/last block, 2 - top/last and 2nd last block, ..., 5 - all blocks
     "trainable_layers": 0,
     // descriptive, not used
     "description": "3-channel ResNet50 initialised with weights from Zoobot, transfer learning mode",
