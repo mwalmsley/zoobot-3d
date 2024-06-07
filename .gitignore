@@ -180,3 +180,4 @@ data/sparcfire/results
 lightning_logs
 outputs
 *.pdf
+*.json

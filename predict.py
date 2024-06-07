@@ -56,10 +56,13 @@ def predict(config : omegaconf.DictConfig) -> None:
     """
     2c. Optionally filter to GZ3D/MANGA or SAMI subset
     """
+    target_survey = 'sami'
     # df = df[~df['ra_manga'].isna()]
     #   OR
-    df = pd.read_csv(base_dir + 'data/sami_and_gz_desi_matches.csv')
-    df['desi_jpg_loc'] = df.apply(lambda x: base_dir + f'data/sami/jpg/{x["brickid"]}/{x["brickid"]}_{x["objid"]}.jpg', axis=1)
+    df = pd.read_csv(base_dir + f'data/{target_survey}_and_gz_desi_matches.csv')
+    df['spiral_mask_loc'] = ''
+    df['bar_mask_loc'] = ''
+    df['desi_jpg_loc'] = df.apply(lambda x: base_dir + f'data/{target_survey}/jpg/{x["brickid"]}/{x["brickid"]}_{x["objid"]}.jpg', axis=1)
     # exit()
     print(df['desi_jpg_loc'].iloc[0])
     # /home/walml/repos/zoobot-3d/data/sami/jpg/335556
@@ -85,9 +88,9 @@ def predict(config : omegaconf.DictConfig) -> None:
     # model.freeze()
 
     # best sweep, use 0.75 crop
-    checkpoint_path = base_dir + 'outputs/run_1695899881.3925836/epoch=93-step=1880.ckpt'
+    # checkpoint_path = base_dir + 'outputs/run_1695899881.3925836/epoch=93-step=1880.ckpt'
     # as above, slightly zoomed, use 0.65 crop
-    # checkpoint_path = base_dir + 'outputs/run_1695938854.2480044/epoch=91-step=1840.ckpt'
+    checkpoint_path = base_dir + 'outputs/run_1695938854.2480044/epoch=91-step=1840.ckpt'
 
     model = gz3d_pytorch_model.ZooBot3D.load_from_checkpoint(checkpoint_path)
                                                             #  , map_location='cpu')
@@ -121,7 +124,7 @@ def predict(config : omegaconf.DictConfig) -> None:
     print(preds[0].shape)
     preds = torch.concat(preds, dim=0)  # stick batches back together
     print(preds.shape)
-    save_dir = os.path.dirname(checkpoint_path) + '/predictions_manga_all/'
+    save_dir = os.path.dirname(checkpoint_path) + f'/predictions_{target_survey}_all/'
     if not os.path.isdir(save_dir):
         os.mkdir(save_dir)
 
