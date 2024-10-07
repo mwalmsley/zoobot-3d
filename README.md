@@ -1,4 +1,4 @@
-# zoobot-3d
+# zoobot-3d (NeurIPS 2023 version)
 
 Segmentation playground for GZ3D and more.
 
